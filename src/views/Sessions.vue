@@ -261,7 +261,7 @@ const pullList = computed(() => {
       ...pull,
       playerNames: Array.from(playerSet).join('、') || '-',
       records: filteredRecords.value.filter(
-        r => r.date === pull.date && r.pullNumber === pull.pullNumber
+        r => r.date === pull.date && r.pullNumber === pull.pullNumber && r.type !== 'pull_end'
       ).sort((a, b) => a.timestamp.localeCompare(b.timestamp))
     }
   })
