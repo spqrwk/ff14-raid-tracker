@@ -142,7 +142,7 @@ function resolveName(id) {
   if (dn) {
     const pid = bindMap.value[dn]
     if (pid) { const p = playerStore.teamPlayers.find(pl=>pl.id===pid); if (p) return p.name }
-    return dn.split('@')[0]
+    return dn
   }
   return `ID:${id}`
 }
