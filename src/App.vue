@@ -50,10 +50,12 @@
             <el-icon><Setting /></el-icon>
             <span>数据管理</span>
           </el-menu-item>
+          <div class="menu-divider">作者</div>
           <el-menu-item index="" disabled class="author-item">
             <el-icon><UserFilled /></el-icon>
             <span>洛辰辰@海猫茶屋</span>
           </el-menu-item>
+          <div class="menu-divider">特别鸣谢</div>
         </el-menu>
       </el-aside>
 
@@ -200,15 +202,16 @@ body {
   border-top: 1px solid #1a1a3a;
 }
 
+.menu-divider {
+  padding: 12px 20px 4px;
+  font-size: 11px; color: #606080; letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
 .author-item.el-menu-item.is-disabled {
   color: #ffd700 !important;
   opacity: 1 !important;
   cursor: default;
-  font-size: 14px;
-  letter-spacing: 0.5px;
-  border-top: 1px solid #2a2a4a;
-  margin-top: 8px;
-  padding-top: 20px;
 }
 .author-item.el-menu-item.is-disabled .el-icon {
   color: #ffd700 !important;

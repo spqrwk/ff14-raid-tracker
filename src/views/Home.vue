@@ -453,22 +453,24 @@ function submitMistake() {
         })
         .filter(Boolean)
 
-      recordStore.addMistakes(entries)
-
+      // 先记录把号、阶段等信息（提交后会变）
+      const recordedPull = currentPull.value
+      const recordedPhase = mistakeForm.phase
       const names = mistakeForm.playerIds
         .map(pid => playerStore.players.find(p => p.id === pid)?.name)
         .filter(Boolean)
         .join(', ')
 
+      recordStore.addMistakes(entries)
+
       ElMessage.success(
-        `第 ${currentPull.value} 把 · ${names} ${mistakeForm.phase} ${levelText} 已记录` +
+        `第 ${recordedPull} 把 · ${names} ${recordedPhase} ${levelText} 已记录` +
         (isFatal ? '，本把已结束' : '')
       )
 
-      // 重置表单
-      mistakeForm.phase = ''
-      mistakeForm.description = ''
-      mistakeForm.level = ''
+      // 重置表单并清除验证状态
+      mistakeFormRef.value?.resetFields()
+      mistakeForm.playerIds = []
     } catch (e) {
       ElMessage.error(e.message || '记录失败')
     } finally {
