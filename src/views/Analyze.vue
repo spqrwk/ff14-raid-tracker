@@ -30,7 +30,7 @@
       <div class="teammate-grid">
         <div v-for="p in teammates" :key="p.id" class="teammate-item">
           <span class="teammate-tag">{{ p.displayName }}</span>
-          <el-select v-model="bindMap[p.id]" placeholder="绑定" size="small" clearable style="width:130px">
+          <el-select v-model="bindMap[p.displayName]" placeholder="绑定" size="small" clearable style="width:130px">
             <el-option v-for="m in playerStore.teamPlayers" :key="m.id" :label="m.name" :value="m.id"/>
           </el-select>
         </div>
@@ -91,7 +91,7 @@ import { useRecordStore } from '../stores/records'
 const playerStore = usePlayerStore()
 const recordStore = useRecordStore()
 const BIND_KEY = 'ff14_fflogs_bind_map'
-const bindMap = ref(JSON.parse(localStorage.getItem(BIND_KEY)||'{}'))
+const bindMap = ref(JSON.parse(localStorage.getItem(BIND_KEY)||'{}'))  // displayName → playerId
 watch(bindMap, v => localStorage.setItem(BIND_KEY, JSON.stringify(v||{})), {deep:true})
 
 const K_ID = 'ff14_fflogs_id', K_SEC = 'ff14_fflogs_secret', K_TOKEN = 'ff14_fflogs_manual_token'
@@ -138,9 +138,13 @@ function fmt(ms) { const s = Math.round(ms/1000); return `${Math.floor(s/60)}:${
 
 function resolveName(id) {
   if (!id) return '?'
-  const pid = bindMap.value[id]
-  if (pid) { const p = playerStore.teamPlayers.find(pl=>pl.id===pid); if (p) return p.name }
-  return actorNameMap.value[id] || `ID:${id}`
+  const dn = actorNameMap.value[id]
+  if (dn) {
+    const pid = bindMap.value[dn]
+    if (pid) { const p = playerStore.teamPlayers.find(pl=>pl.id===pid); if (p) return p.name }
+    return dn.split('@')[0]
+  }
+  return `ID:${id}`
 }
 
 async function fetchFights() {
