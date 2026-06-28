@@ -54,13 +54,13 @@
             <el-icon><Setting /></el-icon>
             <span>数据管理</span>
           </el-menu-item>
-          <div class="menu-divider">作者</div>
-          <el-menu-item index="" disabled class="author-item">
-            <el-icon><UserFilled /></el-icon>
-            <span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span>
-          </el-menu-item>
-          <div class="menu-divider">特别鸣谢</div>
         </el-menu>
+        <div class="sidebar-bottom">
+          <div class="menu-divider">作者</div>
+          <div class="author-item"><el-icon><UserFilled /></el-icon><span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span></div>
+          <div class="menu-divider">特别鸣谢</div>
+          <div class="version-text">v1.0.1 (beta)</div>
+        </div>
       </el-aside>
 
       <el-main class="app-main">
@@ -220,6 +220,11 @@ body {
 .author-item.el-menu-item.is-disabled .el-icon {
   color: #ffd700 !important;
 }
+
+.sidebar-bottom { padding: 8px 20px 16px; }
+.sidebar-bottom .menu-divider { font-size: 11px; color: #505060; letter-spacing: 2px; padding: 10px 0 4px; }
+.sidebar-bottom .author-item { display: flex; align-items: center; gap: 8px; color: #ffd700; font-size: 14px; padding: 6px 0; }
+.sidebar-bottom .version-text { text-align: center; color: #404050; font-size: 11px; padding-top: 8px; }
 
 /* ====== Element Plus 暗色主题 ====== */
 .el-card {
