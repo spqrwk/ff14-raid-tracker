@@ -1,0 +1,863 @@
+<template>
+  <div class="home-page">
+    <div class="page-header">
+      <el-icon><Aim /></el-icon>
+      <span>开荒面板</span>
+      <div class="team-switcher">
+        <el-select
+          v-model="teamStore.currentTeamId"
+          placeholder="选择队伍"
+          style="width: 220px"
+          @change="onTeamSwitch"
+        >
+          <el-option
+            v-for="t in teamStore.teams"
+            :key="t.id"
+            :label="t.duty ? `${t.name} · ${t.duty}` : t.name"
+            :value="t.id"
+          />
+        </el-select>
+        <el-tag v-if="currentTeam" type="success" size="small" effect="dark">
+          {{ currentTeam.duty || '未设定副本' }}
+        </el-tag>
+      </div>
+    </div>
+
+    <!-- 当前状态卡片 -->
+    <el-card class="status-card" shadow="never">
+      <div class="status-bar">
+        <div class="status-item">
+          <span class="status-label">日期</span>
+          <span class="status-value">{{ today }}</span>
+        </div>
+        <div class="status-divider" />
+        <div class="status-item">
+          <span class="status-label">当前</span>
+          <span class="status-value pull-num">第 {{ currentPull }} 把</span>
+        </div>
+        <div class="status-divider" />
+        <div class="status-item">
+          <span class="status-label">今日总把数</span>
+          <span class="status-value">{{ totalPullsToday }}</span>
+        </div>
+        <div class="status-divider" />
+        <div class="status-item">
+          <span class="status-label">今日犯错</span>
+          <span class="status-value mistake-count">{{ totalMistakesToday }}</span>
+        </div>
+        <el-button
+          type="success"
+          plain
+          size="small"
+          @click="handleClearPull"
+        >
+          <el-icon><Trophy /></el-icon>
+          本把通关
+        </el-button>
+        <el-button
+          type="warning"
+          plain
+          size="small"
+          style="margin-left: auto"
+          @click="handleEndPull"
+        >
+          <el-icon><SwitchButton /></el-icon>
+          手动结束本把
+        </el-button>
+      </div>
+    </el-card>
+
+    <!-- 两个操作 Tab -->
+    <el-card class="action-card" shadow="never">
+      <el-tabs v-model="activeTab" class="action-tabs">
+        <!-- ========== 记录犯错 ========== -->
+        <el-tab-pane label="记录犯错" name="mistake">
+          <el-form
+            ref="mistakeFormRef"
+            :model="mistakeForm"
+            :rules="mistakeRules"
+            label-width="80px"
+            label-position="top"
+            class="record-form"
+          >
+            <!-- 角色 → 队员 级联选择 -->
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="角色" prop="role">
+                  <div class="role-selector">
+                    <el-radio-group
+                      v-model="mistakeForm.role"
+                      class="role-radio-bar"
+                      @change="onRoleChange"
+                    >
+                      <el-radio-button
+                        v-for="r in ROLES"
+                        :key="r"
+                        :value="r"
+                        :disabled="rolePlayerCount[r] === 0"
+                      >
+                        <span class="role-radio-label">
+                          <span class="role-radio-tag" :style="{ background: roleColor(r) }">{{ r }}</span>
+                          <span v-if="rolePlayerCount[r] > 0" class="role-player-count">{{ rolePlayerCount[r] }}人</span>
+                        </span>
+                      </el-radio-button>
+                    </el-radio-group>
+                  </div>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="队员" prop="playerId">
+                  <!-- 角色有多个队员：下拉选择 -->
+                  <el-select
+                    v-if="availablePlayers.length > 1"
+                    v-model="mistakeForm.playerId"
+                    placeholder="选择队员"
+                    filterable
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="p in availablePlayers"
+                      :key="p.id"
+                      :label="p.name"
+                      :value="p.id"
+                    />
+                  </el-select>
+                  <!-- 角色只有一个队员：自动选中 -->
+                  <el-tag
+                    v-else-if="availablePlayers.length === 1"
+                    type="success"
+                    size="large"
+                    effect="dark"
+                    class="auto-player-tag"
+                  >
+                    <el-icon><User /></el-icon>
+                    {{ availablePlayers[0].name }}
+                  </el-tag>
+                  <!-- 角色无队员 -->
+                  <span v-else class="no-player-hint">
+                    请先在「成员管理」中为该角色添加队员
+                  </span>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="P几" prop="phase">
+                  <el-select
+                    v-model="mistakeForm.phase"
+                    placeholder="选择或输入阶段"
+                    filterable
+                    allow-create
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="p in selectablePhases"
+                      :key="p"
+                      :label="p"
+                      :value="p"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-form-item label="犯错内容" prop="description">
+              <el-input
+                v-model="mistakeForm.description"
+                type="textarea"
+                :rows="2"
+                placeholder="描述具体犯了什么错（选填）"
+                maxlength="200"
+                show-word-limit
+              />
+            </el-form-item>
+
+            <el-form-item label="犯错等级" prop="level">
+              <el-radio-group v-model="mistakeForm.level" class="level-radio-group">
+                <el-radio-button value="death">
+                  <span class="level-label">
+                    <el-tag type="warning" size="small" effect="dark">减员</el-tag>
+                    <span class="level-desc">仅造成减员，不影响继续打</span>
+                  </span>
+                </el-radio-button>
+                <el-radio-button value="wipe">
+                  <span class="level-label">
+                    <el-tag type="danger" size="small" effect="dark">团灭</el-tag>
+                    <span class="level-desc">导致团灭，本把结束</span>
+                  </span>
+                </el-radio-button>
+                <el-radio-button value="enrage">
+                  <span class="level-label">
+                    <el-tag type="danger" size="small" effect="dark" color="#8b0045">狂暴</el-tag>
+                    <span class="level-desc">导致狂暴 / 输出不足</span>
+                  </span>
+                </el-radio-button>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="primary" size="large" @click="submitMistake" :loading="submitting">
+                <el-icon><Check /></el-icon>
+                提交犯错记录
+              </el-button>
+              <span v-if="mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage'" class="pull-end-hint">
+                ⚠ 提交后将自动结束本把 (第 {{ currentPull }} 把)，下一把为第 {{ currentPull + 1 }} 把
+              </span>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <!-- ========== 记录进度 ========== -->
+        <el-tab-pane label="记录进度" name="progress">
+          <el-form
+            ref="progressFormRef"
+            :model="progressForm"
+            :rules="progressRules"
+            label-width="80px"
+            label-position="top"
+            class="record-form"
+          >
+            <el-row :gutter="16">
+              <el-col :span="12">
+                <el-form-item label="到达P几" prop="phase">
+                  <el-select
+                    v-model="progressForm.phase"
+                    placeholder="选择或输入阶段"
+                    filterable
+                    allow-create
+                    style="width: 100%"
+                  >
+                    <el-option
+                      v-for="p in selectablePhases"
+                      :key="p"
+                      :label="p"
+                      :value="p"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="12">
+                <el-form-item label="备注">
+                  <el-input
+                    v-model="progressForm.notes"
+                    placeholder="如：顺利处理了某某机制"
+                    maxlength="100"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-form-item>
+              <el-checkbox v-model="progressForm.endPull">
+                记录后结束本把 (下一把 +1)
+              </el-checkbox>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="success" size="large" @click="submitProgress" :loading="submitting">
+                <el-icon><Check /></el-icon>
+                记录进度
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
+
+    <!-- 今日记录摘要 -->
+    <el-card class="today-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <el-icon><List /></el-icon>
+          <span>今日记录 ({{ today }})</span>
+        </div>
+      </template>
+
+      <div v-if="dailyPulls.length === 0" class="empty-today">
+        <el-empty description="今天还没有记录" :image-size="80" />
+      </div>
+
+      <div v-else class="pull-list">
+        <div
+          v-for="pull in dailyPulls"
+          :key="pull.pullNumber"
+          class="pull-group"
+        >
+          <div class="pull-header">
+            <span class="pull-title">
+              <el-tag :type="pull.ended ? 'danger' : 'success'" size="small" effect="dark">
+                第 {{ pull.pullNumber }} 把
+              </el-tag>
+              <span v-if="pull.maxPhase" class="pull-phase">
+                最远到 <strong>{{ pull.maxPhase }}</strong>
+              </span>
+              <span v-if="pull.ended" class="pull-ended-tag">已结束</span>
+              <span v-else class="pull-active-tag">进行中</span>
+            </span>
+            <el-popconfirm
+              title="确定删除这一把的所有记录？"
+              @confirm="recordStore.deletePull(today, pull.pullNumber)"
+            >
+              <template #reference>
+                <el-button type="danger" link size="small">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </template>
+            </el-popconfirm>
+          </div>
+
+          <div class="pull-records">
+            <div
+              v-for="rec in pull.records"
+              :key="rec.id"
+              class="record-item"
+            >
+              <template v-if="rec.type === 'mistake'">
+                <span class="rec-player">{{ rec.playerName }}</span>
+                <span class="rec-phase">{{ rec.phase }}</span>
+                <el-tag
+                  :type="levelTagType(rec.level)"
+                  size="small"
+                  effect="dark"
+                >{{ levelLabel(rec.level) }}</el-tag>
+                <span v-if="rec.description" class="rec-desc">{{ rec.description }}</span>
+              </template>
+              <template v-else-if="rec.type === 'progress'">
+                <span class="rec-progress-tag">
+                  <el-icon><Top /></el-icon>
+                  到达 {{ rec.phase }}
+                </span>
+                <span v-if="rec.notes" class="rec-desc">{{ rec.notes }}</span>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-card>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, computed, watch } from 'vue'
+import { ElMessage } from 'element-plus'
+import { usePlayerStore, ROLES, ROLE_LABELS } from '../stores/players'
+import { useRecordStore } from '../stores/records'
+import { useTeamStore } from '../stores/teams'
+
+const playerStore = usePlayerStore()
+const recordStore = useRecordStore()
+const teamStore = useTeamStore()
+
+const currentTeam = computed(() => teamStore.currentTeam)
+
+// 可选阶段（排除"已完成"，已完成通过通关按钮触发）
+const selectablePhases = computed(() =>
+  recordStore.phaseOrder.filter(p => p !== '已完成')
+)
+
+function onTeamSwitch() {
+  // 切换队伍时，角色和队员选择自然跟着切换（playersByRole 基于 teamPlayers）
+  mistakeForm.role = ''
+  mistakeForm.playerId = ''
+}
+
+// 角色颜色
+const ROLE_COLORS = {
+  MT: '#4a90d9', ST: '#3a7bc8',
+  H1: '#67c23a', H2: '#5ab22e',
+  D1: '#e6a23c', D2: '#d49520',
+  D3: '#f56c6c', D4: '#c4568b'
+}
+function roleColor(role) { return ROLE_COLORS[role] || '#666' }
+
+// --- 当前日期 ---
+const today = computed(() => new Date().toISOString().split('T')[0])
+
+// --- 当前 pull 号 ---
+const currentPull = computed(() => recordStore.getCurrentPullNumber(today.value))
+
+// --- 今日数据 ---
+const dailyPulls = computed(() => recordStore.getDailyPullSummary(today.value))
+
+const totalPullsToday = computed(() => {
+  const pulls = new Set()
+  recordStore.records
+    .filter(r => r.date === today.value && r.type !== 'pull_end')
+    .forEach(r => pulls.add(r.pullNumber))
+  return pulls.size
+})
+
+const totalMistakesToday = computed(() =>
+  recordStore.records.filter(r => r.date === today.value && r.type === 'mistake').length
+)
+
+// --- 每个角色下的人数 ---
+const rolePlayerCount = computed(() => {
+  const counts = {}
+  for (const r of ROLES) {
+    counts[r] = playerStore.playersByRole[r]?.length || 0
+  }
+  return counts
+})
+
+// --- 表单 Tab ---
+const activeTab = ref('mistake')
+
+// --- 犯错表单 ---
+const mistakeFormRef = ref(null)
+const submitting = ref(false)
+
+const mistakeForm = reactive({
+  role: '',
+  playerId: '',
+  phase: '',
+  description: '',
+  level: ''
+})
+
+// 当前角色下的可选队员
+const availablePlayers = computed(() => {
+  if (!mistakeForm.role) return []
+  return playerStore.playersByRole[mistakeForm.role] || []
+})
+
+// 角色变更时：清空队员选择，若仅一人则自动选中
+function onRoleChange() {
+  mistakeForm.playerId = ''
+  if (availablePlayers.value.length === 1) {
+    mistakeForm.playerId = availablePlayers.value[0].id
+  }
+}
+
+// 表单规则
+const mistakeRules = {
+  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
+  playerId: [
+    {
+      required: true,
+      validator: (_rule, value, callback) => {
+        if (availablePlayers.value.length === 0) {
+          callback(new Error('该角色没有队员，请先在成员管理中分配'))
+        } else if (!value) {
+          callback(new Error('请选择队员'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'change'
+    }
+  ],
+  phase: [{ required: true, message: '请选择或输入阶段', trigger: 'change' }],
+  level: [{ required: true, message: '请选择犯错等级', trigger: 'change' }]
+}
+
+function submitMistake() {
+  mistakeFormRef.value?.validate(async (valid) => {
+    if (!valid) return
+    submitting.value = true
+    try {
+      const player = playerStore.players.find(p => p.id === mistakeForm.playerId)
+      recordStore.addMistake({
+        playerId: mistakeForm.playerId,
+        playerName: player?.name || '未知',
+        phase: mistakeForm.phase,
+        description: mistakeForm.description,
+        level: mistakeForm.level,
+        date: today.value
+      })
+
+      const levelText = levelLabel(mistakeForm.level)
+      const isFatal = mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage'
+      ElMessage.success(
+        `第 ${currentPull.value} 把 · [${mistakeForm.role}] ${player?.name} ${mistakeForm.phase} ${levelText} 已记录` +
+        (isFatal ? '，本把已结束' : '')
+      )
+
+      // 重置表单（保留角色方便连续录入）
+      mistakeForm.phase = ''
+      mistakeForm.description = ''
+      mistakeForm.level = ''
+    } catch (e) {
+      ElMessage.error(e.message || '记录失败')
+    } finally {
+      submitting.value = false
+    }
+  })
+}
+
+// --- 进度表单 ---
+const progressFormRef = ref(null)
+
+const progressForm = reactive({
+  phase: '',
+  notes: '',
+  endPull: false
+})
+
+const progressRules = {
+  phase: [{ required: true, message: '请选择或输入阶段', trigger: 'change' }]
+}
+
+function submitProgress() {
+  progressFormRef.value?.validate(async (valid) => {
+    if (!valid) return
+    submitting.value = true
+    try {
+      recordStore.addProgress({
+        phase: progressForm.phase,
+        notes: progressForm.notes,
+        endPull: progressForm.endPull,
+        date: today.value
+      })
+
+      const endText = progressForm.endPull ? '，本把已结束' : ''
+      ElMessage.success(
+        `第 ${currentPull.value} 把 · 到达 ${progressForm.phase} 已记录${endText}`
+      )
+
+      progressForm.phase = ''
+      progressForm.notes = ''
+      progressForm.endPull = false
+    } catch (e) {
+      ElMessage.error(e.message || '记录失败')
+    } finally {
+      submitting.value = false
+    }
+  })
+}
+
+// --- 手动结束本把 ---
+function handleEndPull() {
+  const result = recordStore.endCurrentPull(today.value)
+  if (result) {
+    ElMessage.success(`第 ${result.pullNumber} 把已手动结束，下一把为第 ${currentPull.value} 把`)
+  } else {
+    ElMessage.info('当前把次没有记录，无需结束')
+  }
+}
+
+// --- 本把通关 ---
+function handleClearPull() {
+  const result = recordStore.markPullCleared(today.value)
+  ElMessage.success(`🎉 第 ${result.pullNumber} 把已通关！恭喜！`)
+}
+
+// --- 辅助 ---
+function levelLabel(level) {
+  const map = { death: '减员', wipe: '团灭', enrage: '狂暴' }
+  return map[level] || level
+}
+
+function levelTagType(level) {
+  const map = { death: 'warning', wipe: 'danger', enrage: 'danger' }
+  return map[level] || 'info'
+}
+</script>
+
+<style scoped>
+.home-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.team-switcher {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 状态卡片 */
+.status-card {
+  margin-bottom: 16px;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #808090;
+}
+
+.status-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.status-value.pull-num {
+  color: #ffd700;
+  font-size: 22px;
+}
+
+.status-value.mistake-count {
+  color: #f56c6c;
+}
+
+.status-divider {
+  width: 1px;
+  height: 36px;
+  background: #2a2a4a;
+}
+
+/* 操作卡片 */
+.action-card {
+  margin-bottom: 16px;
+}
+
+.action-tabs :deep(.el-tabs__header) {
+  margin-bottom: 20px;
+}
+
+.action-tabs :deep(.el-tabs__item) {
+  font-size: 16px;
+  color: #a0a0b8;
+}
+
+.action-tabs :deep(.el-tabs__item.is-active) {
+  color: #ffd700;
+}
+
+.record-form {
+  padding: 8px 0;
+}
+
+/* 角色选择器 */
+.role-selector {
+  width: 100%;
+}
+
+.role-radio-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.role-radio-bar :deep(.el-radio-button) {
+  margin: 0;
+}
+
+.role-radio-bar :deep(.el-radio-button__inner) {
+  padding: 6px 10px;
+  background: #252540;
+  border-color: #3a3a5a;
+  color: #c0c0d0;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.role-radio-bar :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: #3a3050;
+  border-color: #ffd700;
+  box-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
+}
+
+.role-radio-bar :deep(.el-radio-button.is-disabled .el-radio-button__inner) {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.role-radio-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.role-radio-tag {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.role-player-count {
+  font-size: 10px;
+  color: #808090;
+}
+
+.auto-player-tag {
+  margin-top: 2px;
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+.no-player-hint {
+  display: inline-block;
+  margin-top: 6px;
+  color: #f56c6c;
+  font-size: 12px;
+}
+
+/* 犯错等级单选 */
+.level-radio-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.level-radio-group :deep(.el-radio-button__inner) {
+  height: auto;
+  padding: 10px 14px;
+  background: #252540;
+  border-color: #3a3a5a;
+  color: #c0c0d0;
+}
+
+.level-radio-group :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: #3a3050;
+  border-color: #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.15);
+}
+
+.level-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.level-desc {
+  font-size: 11px;
+  color: #808090;
+}
+
+.pull-end-hint {
+  margin-left: 16px;
+  font-size: 13px;
+  color: #e6a23c;
+}
+
+/* 今日记录 */
+.today-card {
+  margin-bottom: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.empty-today {
+  padding: 20px 0;
+}
+
+.pull-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pull-group {
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 12px 16px;
+  background: #141428;
+}
+
+.pull-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.pull-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pull-phase {
+  font-size: 13px;
+  color: #a0a0b8;
+}
+
+.pull-phase strong {
+  color: #ffd700;
+}
+
+.pull-ended-tag,
+.pull-active-tag {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pull-ended-tag {
+  background: rgba(245, 108, 108, 0.15);
+  color: #f56c6c;
+}
+
+.pull-active-tag {
+  background: rgba(103, 194, 58, 0.15);
+  color: #67c23a;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pull-records {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.record-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #1a1a2e;
+  border-radius: 4px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+
+.rec-player {
+  color: #67c23a;
+  font-weight: 600;
+  min-width: 60px;
+}
+
+.rec-phase {
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.rec-desc {
+  color: #808090;
+  font-size: 12px;
+  flex: 1;
+  min-width: 100px;
+}
+
+.rec-progress-tag {
+  color: #409eff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+</style>
