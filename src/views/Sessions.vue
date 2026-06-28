@@ -2,7 +2,7 @@
   <div class="sessions-page">
     <div class="page-header">
       <el-icon><List /></el-icon>
-      <span>历史记录</span>
+      <span>历史记录</span><router-link to="/help#history" class="help-link">📖</router-link>
     </div>
 
     <!-- 筛选栏 -->

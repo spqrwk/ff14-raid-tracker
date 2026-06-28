@@ -2,7 +2,7 @@
   <div class="stats-page">
     <div class="page-header">
       <el-icon><DataAnalysis /></el-icon>
-      <span>数据统计</span>
+      <span>数据统计</span><router-link to="/help#stats" class="help-link">📖</router-link>
     </div>
 
     <!-- 筛选栏 -->

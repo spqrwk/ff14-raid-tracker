@@ -2,7 +2,7 @@
   <div class="home-page">
     <div class="page-header">
       <el-icon><Aim /></el-icon>
-      <span>开荒面板</span>
+      <span>开荒面板</span><router-link to="/help#record" class="help-link">📖</router-link>
       <div class="team-switcher">
         <el-select
           v-model="teamStore.currentTeamId"

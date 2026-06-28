@@ -2,7 +2,7 @@
   <div class="settings-page">
     <div class="page-header">
       <el-icon><Setting /></el-icon>
-      <span>数据管理</span>
+      <span>数据管理</span><router-link to="/help#data" class="help-link">📖</router-link>
     </div>
 
     <!-- 数据概览 -->

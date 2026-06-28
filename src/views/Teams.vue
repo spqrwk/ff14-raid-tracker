@@ -2,7 +2,7 @@
   <div class="teams-page">
     <div class="page-header">
       <el-icon><Collection /></el-icon>
-      <span>队伍管理</span>
+      <span>队伍管理</span><router-link to="/help#team" class="help-link">📖</router-link>
     </div>
 
     <!-- 操作栏 -->

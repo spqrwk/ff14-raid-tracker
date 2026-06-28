@@ -34,6 +34,10 @@
             <el-icon><DataAnalysis /></el-icon>
             <span>数据统计</span>
           </el-menu-item>
+          <el-menu-item index="/analyze">
+            <el-icon><Download /></el-icon>
+            <span>FFLogs 导入</span>
+          </el-menu-item>
           <el-menu-item index="/help">
             <el-icon><Reading /></el-icon>
             <span>使用帮助</span>
@@ -53,7 +57,7 @@
           <div class="menu-divider">作者</div>
           <el-menu-item index="" disabled class="author-item">
             <el-icon><UserFilled /></el-icon>
-            <span>洛辰辰@海猫茶屋</span>
+            <span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span>
           </el-menu-item>
           <div class="menu-divider">特别鸣谢</div>
         </el-menu>
@@ -314,6 +318,11 @@ body {
   align-items: center;
   gap: 10px;
 }
+.help-link {
+  color: #606080; font-size: 16px; text-decoration: none; margin-left: auto;
+  transition: color .15s;
+}
+.help-link:hover { color: #ffd700; }
 
 .welcome-content { line-height: 1.8; color: #c0c0d0; }
 .welcome-content p { margin-bottom: 12px; }

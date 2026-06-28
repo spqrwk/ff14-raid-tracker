@@ -2,7 +2,7 @@
   <div class="players-page">
     <div class="page-header">
       <el-icon><User /></el-icon>
-      <span>成员管理</span>
+      <span>成员管理</span><router-link to="/help#members" class="help-link">📖</router-link>
       <div class="team-context">
         <el-tag v-if="currentTeam" type="success" size="small" effect="dark">
           {{ currentTeam.name }}

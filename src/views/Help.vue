@@ -7,7 +7,7 @@
 
     <div class="help-content">
       <section class="help-section">
-        <h2>📖 这是什么</h2>
+        <h2 id="intro">📖 这是什么</h2>
         <p>固定队开荒时，每个人都会犯错——记不住谁犯了什么错、哪把最远到哪、今天效率如何？这个工具帮你<strong>记录每一把的犯错和进度</strong>，自动生成图表统计，让问题一目了然。</p>
         <p>数据全部保存在<strong>浏览器本地</strong>（localStorage），不上传任何服务器。换个浏览器或清缓存会丢，记得定期导出备份。</p>
       </section>
@@ -18,7 +18,7 @@
       </section>
 
       <section class="help-section">
-        <h2>🏗️ 第一步：创建队伍</h2>
+        <h2 id="team">🏗️ 第一步：创建队伍</h2>
         <p>点击左侧 <strong>「队伍管理」</strong>，新建一个队伍：</p>
         <ul>
           <li>队伍名称：如「绝巴哈固定队」</li>
@@ -28,7 +28,7 @@
       </section>
 
       <section class="help-section">
-        <h2>👥 第二步：添加队员</h2>
+        <h2 id="members">👥 第二步：添加队员</h2>
         <p>点击左侧 <strong>「成员管理」</strong>，你会看到一个 8 行表格：</p>
         <div class="demo-block">
           <pre>MT  ──── [________]    ST  ──── [________]
@@ -45,7 +45,7 @@ D3  ──── [________]    D4  ──── [________]</pre>
       </section>
 
       <section class="help-section">
-        <h2>📝 第三步：开荒记录</h2>
+        <h2 id="record">📝 第三步：开荒记录</h2>
         <p>回到 <strong>「开荒面板」</strong>，这里是日常使用的核心页面。</p>
 
         <h3>记录犯错</h3>
@@ -74,7 +74,7 @@ D3  ──── [________]    D4  ──── [________]</pre>
       </section>
 
       <section class="help-section">
-        <h2>📊 第四步：查看统计</h2>
+        <h2 id="stats">📊 第四步：查看统计</h2>
         <p>点击左侧 <strong>「数据统计」</strong>，4 个分析维度：</p>
         <ul>
           <li><strong>队员统计</strong>：每人每天犯错次数表格，含减员/团灭/狂暴/罪无可恕分项</li>
@@ -85,7 +85,7 @@ D3  ──── [________]    D4  ──── [________]</pre>
       </section>
 
       <section class="help-section">
-        <h2>📋 第五步：回顾历史</h2>
+        <h2 id="history">📋 第五步：回顾历史</h2>
         <p><strong>「历史记录」</strong> 有两个视图：</p>
         <ul>
           <li><strong>按日期</strong>：传统视图，日期→把次两级分组</li>
@@ -94,12 +94,36 @@ D3  ──── [________]    D4  ──── [________]</pre>
       </section>
 
       <section class="help-section">
+        <h2 id="fflogs">📥 FFLogs 导入</h2>
+        <p>通过 FFLogs 报告链接，自动抓取每场战斗的死亡事件，批量导入为犯错记录。</p>
+
+        <h3>获取 API 凭据</h3>
+        <ol>
+          <li>打开 <a href="https://www.fflogs.com/api/clients/" target="_blank">https://www.fflogs.com/api/clients/</a></li>
+          <li>登录后点击「创建 API 客户端」，填写名称（如"开荒记录"），URL 填你的网站地址</li>
+          <li>复制 <strong>Client ID</strong> 和 <strong>Client Secret</strong></li>
+        </ol>
+
+        <h3>导入步骤</h3>
+        <ol>
+          <li>在「FFLogs 导入」页面粘贴 API 凭据和报告链接</li>
+          <li>点击「获取战斗列表」，自动抓取所有场次和死亡事件</li>
+          <li>每场战斗显示 FFLogs 返回的阶段（绿色标签），可手动覆盖</li>
+          <li>为每条死亡选择 <strong>阶段</strong> 和 <strong>犯错等级</strong>，不选的不导入</li>
+          <li>顶部「队友绑定」可把 FFLogs 玩家名关联到队伍成员</li>
+          <li>底部「批量添加至犯错记录」一键保存</li>
+        </ol>
+
+        <div class="help-tip">💡 每场战斗自动对应一把，按时间排序。没人犯错但选了阶段的战斗会存为进度记录。</div>
+      </section>
+
+      <section class="help-section">
         <h2>🔄 队员上下场</h2>
         <p>有人请假？在 <strong>「成员管理」</strong> 中点「下场」，该队员将在犯错记录中隐藏，防止误选。归队后点「上场」恢复。</p>
       </section>
 
       <section class="help-section">
-        <h2>💾 数据安全</h2>
+        <h2 id="data">💾 数据安全</h2>
         <p><strong>「数据管理」</strong> 页面提供：</p>
         <table class="help-table">
           <tr><td>导出全部</td><td>完整备份，JSON 文件下载</td></tr>
@@ -143,6 +167,21 @@ D3  ──── [________]    D4  ──── [________]</pre>
     </div>
   </div>
 </template>
+
+<script setup>
+import { onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+const route = useRoute()
+onMounted(() => {
+  const hash = route.hash
+  if (hash) {
+    setTimeout(() => {
+      const el = document.querySelector(hash)
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 200)
+  }
+})
+</script>
 
 <style scoped>
 .help-page { max-width: 800px; margin: 0 auto; }
