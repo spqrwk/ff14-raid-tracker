@@ -185,14 +185,23 @@ const totalPulls = computed(() => {
 
 // --- 导出 ---
 function handleExport() {
+  // 收集所有 localStorage 中与项目相关的 key
+  const allStorage = {}
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key && key.startsWith('ff14_')) {
+      allStorage[key] = localStorage.getItem(key)
+    }
+  }
   const data = {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     currentTeamId: teamStore.currentTeamId,
     teams: teamStore.teams,
     players: playerStore.players,
     records: recordStore.records,
-    phaseOrder: recordStore.phaseOrder
+    phaseOrder: recordStore.phaseOrder,
+    allStorage
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -256,24 +265,30 @@ function handleImport() {
   importing.value = true
   try {
     // 覆盖队伍
-    if (importData.value.teams) {
-      teamStore.teams.splice(0, teamStore.teams.length, ...importData.value.teams)
-      teamStore.persistTeams()
+  if (importData.value.teams) {
+    teamStore.teams.splice(0, teamStore.teams.length, ...importData.value.teams)
+    teamStore.persistTeams()
+  }
+  // 覆盖队员
+  playerStore.players.splice(0, playerStore.players.length, ...importData.value.players)
+  playerStore.persist()
+  // 覆盖记录
+  recordStore.records.splice(0, recordStore.records.length, ...importData.value.records)
+  recordStore.persist()
+  // 阶段顺序
+  if (importData.value.phaseOrder) {
+    recordStore.updatePhaseOrder(importData.value.phaseOrder)
+  }
+  if (importData.value.currentTeamId) {
+    teamStore.setCurrentTeam(importData.value.currentTeamId)
+  }
+  // 恢复所有 localStorage 配置（API Key、绑定关系、加精等）
+  if (importData.value.allStorage) {
+    for (const [k, v] of Object.entries(importData.value.allStorage)) {
+      localStorage.setItem(k, v)
     }
-    // 覆盖队员
-    playerStore.players.splice(0, playerStore.players.length, ...importData.value.players)
-    playerStore.persist()
-    // 覆盖记录
-    recordStore.records.splice(0, recordStore.records.length, ...importData.value.records)
-    recordStore.persist()
-    // 阶段顺序
-    if (importData.value.phaseOrder) {
-      recordStore.updatePhaseOrder(importData.value.phaseOrder)
-    }
-    if (importData.value.currentTeamId) {
-      teamStore.setCurrentTeam(importData.value.currentTeamId)
-    }
-    ElMessage.success('数据已成功导入')
+  }
+  ElMessage.success('数据已成功导入，请刷新页面以应用全部配置')
     importData.value = null
   } catch (e) {
     ElMessage.error('导入失败: ' + (e.message || '未知错误'))
