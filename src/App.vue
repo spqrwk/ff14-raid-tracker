@@ -34,6 +34,10 @@
             <el-icon><DataAnalysis /></el-icon>
             <span>数据统计</span>
           </el-menu-item>
+          <el-menu-item index="/help">
+            <el-icon><Reading /></el-icon>
+            <span>使用帮助</span>
+          </el-menu-item>
           <el-menu-item index="/teams">
             <el-icon><Collection /></el-icon>
             <span>队伍管理</span>
