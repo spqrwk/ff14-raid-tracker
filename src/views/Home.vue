@@ -80,66 +80,36 @@
             label-position="top"
             class="record-form"
           >
-            <!-- 角色 → 队员 级联选择 -->
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item label="角色" prop="role">
-                  <div class="role-selector">
-                    <el-radio-group
-                      v-model="mistakeForm.role"
-                      class="role-radio-bar"
-                      @change="onRoleChange"
-                    >
-                      <el-radio-button
-                        v-for="r in ROLES"
-                        :key="r"
-                        :value="r"
-                        :disabled="rolePlayerCount[r] === 0"
-                      >
-                        <span class="role-radio-label">
-                          <span class="role-radio-tag" :style="{ background: roleColor(r) }">{{ r }}</span>
-                          <span v-if="rolePlayerCount[r] > 0" class="role-player-count">{{ rolePlayerCount[r] }}人</span>
-                        </span>
-                      </el-radio-button>
-                    </el-radio-group>
-                  </div>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="队员" prop="playerId">
-                  <!-- 角色有多个队员：下拉选择 -->
-                  <el-select
-                    v-if="availablePlayers.length > 1"
-                    v-model="mistakeForm.playerId"
-                    placeholder="选择队员"
-                    filterable
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="p in availablePlayers"
+            <!-- 多选队员（按角色分组） -->
+            <el-form-item label="犯错队员" prop="playerIds">
+              <div class="player-check-grid">
+                <div
+                  v-for="role in ROLES"
+                  :key="role"
+                  class="player-check-group"
+                  :class="{ 'has-players': rolePlayerCount[role] > 0 }"
+                >
+                  <span class="player-check-role" :style="{ background: roleColor(role) }">{{ role }}</span>
+                  <template v-if="rolePlayerCount[role] > 0">
+                    <el-checkbox
+                      v-for="p in playerStore.playersByRole[role]"
                       :key="p.id"
-                      :label="p.name"
-                      :value="p.id"
-                    />
-                  </el-select>
-                  <!-- 角色只有一个队员：自动选中 -->
-                  <el-tag
-                    v-else-if="availablePlayers.length === 1"
-                    type="success"
-                    size="large"
-                    effect="dark"
-                    class="auto-player-tag"
-                  >
-                    <el-icon><User /></el-icon>
-                    {{ availablePlayers[0].name }}
-                  </el-tag>
-                  <!-- 角色无队员 -->
-                  <span v-else class="no-player-hint">
-                    请先在「成员管理」中为该角色添加队员
-                  </span>
-                </el-form-item>
-              </el-col>
-            </el-row>
+                      :model-value="mistakeForm.playerIds"
+                      :label="p.id"
+                      @change="(checked) => togglePlayer(p.id, checked)"
+                    >
+                      {{ p.name }}
+                    </el-checkbox>
+                  </template>
+                  <span v-else class="no-player-inline">-</span>
+                </div>
+              </div>
+              <div class="player-check-actions">
+                <el-button link size="small" @click="checkAllPlayers">全选</el-button>
+                <el-button link size="small" @click="uncheckAllPlayers">清空</el-button>
+                <span class="selected-count">{{ mistakeForm.playerIds.length }} 人已选</span>
+              </div>
+            </el-form-item>
 
             <el-row :gutter="16">
               <el-col :span="12">
@@ -357,9 +327,7 @@ const selectablePhases = computed(() =>
 )
 
 function onTeamSwitch() {
-  // 切换队伍时，角色和队员选择自然跟着切换（playersByRole 基于 teamPlayers）
-  mistakeForm.role = ''
-  mistakeForm.playerId = ''
+  mistakeForm.playerIds = []
 }
 
 // 角色颜色
@@ -409,38 +377,42 @@ const mistakeFormRef = ref(null)
 const submitting = ref(false)
 
 const mistakeForm = reactive({
-  role: '',
-  playerId: '',
+  playerIds: [],
   phase: '',
   description: '',
   level: ''
 })
 
-// 当前角色下的可选队员
-const availablePlayers = computed(() => {
-  if (!mistakeForm.role) return []
-  return playerStore.playersByRole[mistakeForm.role] || []
-})
-
-// 角色变更时：清空队员选择，若仅一人则自动选中
-function onRoleChange() {
-  mistakeForm.playerId = ''
-  if (availablePlayers.value.length === 1) {
-    mistakeForm.playerId = availablePlayers.value[0].id
+function togglePlayer(id, checked) {
+  if (checked) {
+    if (!mistakeForm.playerIds.includes(id)) mistakeForm.playerIds.push(id)
+  } else {
+    mistakeForm.playerIds = mistakeForm.playerIds.filter(pid => pid !== id)
   }
+}
+
+function checkAllPlayers() {
+  const all = []
+  for (const role of ROLES) {
+    for (const p of (playerStore.playersByRole[role] || [])) {
+      all.push(p.id)
+    }
+  }
+  mistakeForm.playerIds = all
+}
+
+function uncheckAllPlayers() {
+  mistakeForm.playerIds = []
 }
 
 // 表单规则
 const mistakeRules = {
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }],
-  playerId: [
+  playerIds: [
     {
       required: true,
       validator: (_rule, value, callback) => {
-        if (availablePlayers.value.length === 0) {
-          callback(new Error('该角色没有队员，请先在成员管理中分配'))
-        } else if (!value) {
-          callback(new Error('请选择队员'))
+        if (!value || value.length === 0) {
+          callback(new Error('请至少勾选一名队员'))
         } else {
           callback()
         }
@@ -457,24 +429,33 @@ function submitMistake() {
     if (!valid) return
     submitting.value = true
     try {
-      const player = playerStore.players.find(p => p.id === mistakeForm.playerId)
-      recordStore.addMistake({
-        playerId: mistakeForm.playerId,
-        playerName: player?.name || '未知',
-        phase: mistakeForm.phase,
-        description: mistakeForm.description,
-        level: mistakeForm.level,
-        date: today.value
-      })
-
       const levelText = levelLabel(mistakeForm.level)
       const isFatal = mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage'
+
+      for (const pid of mistakeForm.playerIds) {
+        const player = playerStore.players.find(p => p.id === pid)
+        if (!player) continue
+        recordStore.addMistake({
+          playerId: pid,
+          playerName: player.name,
+          phase: mistakeForm.phase,
+          description: mistakeForm.description,
+          level: mistakeForm.level,
+          date: today.value
+        })
+      }
+
+      const names = mistakeForm.playerIds
+        .map(pid => playerStore.players.find(p => p.id === pid)?.name)
+        .filter(Boolean)
+        .join(', ')
+
       ElMessage.success(
-        `第 ${currentPull.value} 把 · [${mistakeForm.role}] ${player?.name} ${mistakeForm.phase} ${levelText} 已记录` +
+        `第 ${currentPull.value} 把 · ${names} ${mistakeForm.phase} ${levelText} 已记录` +
         (isFatal ? '，本把已结束' : '')
       )
 
-      // 重置表单（保留角色方便连续录入）
+      // 重置表单
       mistakeForm.phase = ''
       mistakeForm.description = ''
       mistakeForm.level = ''
@@ -634,73 +615,71 @@ function levelTagType(level) {
   padding: 8px 0;
 }
 
-/* 角色选择器 */
-.role-selector {
-  width: 100%;
+/* 队员勾选网格 */
+.player-check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
 }
 
-.role-radio-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.role-radio-bar :deep(.el-radio-button) {
-  margin: 0;
-}
-
-.role-radio-bar :deep(.el-radio-button__inner) {
-  padding: 6px 10px;
-  background: #252540;
-  border-color: #3a3a5a;
-  color: #c0c0d0;
-  font-size: 13px;
-  border-radius: 4px;
-}
-
-.role-radio-bar :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
-  background: #3a3050;
-  border-color: #ffd700;
-  box-shadow: 0 0 6px rgba(255, 215, 0, 0.2);
-}
-
-.role-radio-bar :deep(.el-radio-button.is-disabled .el-radio-button__inner) {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.role-radio-label {
+.player-check-group {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 4px;
+  padding: 8px 10px;
+  background: #141428;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  min-height: 48px;
 }
 
-.role-radio-tag {
+.player-check-group.has-players {
+  border-color: #3a3a5a;
+}
+
+.player-check-role {
   display: inline-block;
-  padding: 0 6px;
+  width: 40px;
+  text-align: center;
+  padding: 1px 6px;
   border-radius: 3px;
   color: #fff;
   font-weight: 700;
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.player-check-group :deep(.el-checkbox) {
+  margin-right: 0;
+}
+
+.player-check-group :deep(.el-checkbox__label) {
   font-size: 12px;
+  color: #c0c0d0;
+  padding-left: 4px;
 }
 
-.role-player-count {
-  font-size: 10px;
-  color: #808090;
+.player-check-group :deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #67c23a;
 }
 
-.auto-player-tag {
-  margin-top: 2px;
-  font-size: 14px;
-  padding: 8px 16px;
-}
-
-.no-player-hint {
-  display: inline-block;
-  margin-top: 6px;
-  color: #f56c6c;
+.no-player-inline {
+  color: #505060;
   font-size: 12px;
+  padding-left: 4px;
+}
+
+.player-check-actions {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selected-count {
+  font-size: 12px;
+  color: #67c23a;
+  font-weight: 600;
 }
 
 /* 犯错等级单选 */
