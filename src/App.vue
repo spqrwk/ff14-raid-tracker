@@ -160,6 +160,27 @@ body {
   --el-table-border-color: #2a2a4a !important;
   --el-table-text-color: #e0e0e0 !important;
   --el-table-header-text-color: #c0c0d0 !important;
+  --el-table-row-hover-bg-color: #252540 !important;
+  --el-table-current-row-bg-color: #252540 !important;
+  --el-table-expanded-cell-bg-color: #1a1a2e !important;
+  --el-fill-color-lighter: #252540 !important;
+  --el-fill-color-light: #1a1a2e !important;
+  --el-fill-color-blank: #1a1a2e !important;
+}
+
+.el-popper {
+  background: #1a1a2e !important;
+  border: 1px solid #2a2a4a !important;
+  color: #e0e0e0 !important;
+}
+
+.el-popper .el-popconfirm__action {
+  justify-content: flex-end;
+}
+
+.el-tooltip__content {
+  background: #252540 !important;
+  color: #e0e0e0 !important;
 }
 
 .el-dialog {
@@ -169,6 +190,78 @@ body {
 
 .el-dialog__title {
   color: #e0e0e0 !important;
+}
+
+.el-select-dropdown {
+  background: #1a1a2e !important;
+  border: 1px solid #2a2a4a !important;
+}
+
+.el-select-dropdown__item {
+  color: #c0c0d0 !important;
+}
+
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+  background: #252540 !important;
+}
+
+.el-select-dropdown__item.selected {
+  color: #ffd700 !important;
+}
+
+.el-date-picker {
+  background: #1a1a2e !important;
+  border: 1px solid #2a2a4a !important;
+  color: #e0e0e0 !important;
+}
+
+.el-picker-panel {
+  background: #1a1a2e !important;
+  border: 1px solid #2a2a4a !important;
+}
+
+.el-picker-panel__body {
+  background: #1a1a2e !important;
+}
+
+.el-date-table th {
+  color: #808090 !important;
+}
+
+.el-date-table td {
+  color: #c0c0d0 !important;
+}
+
+.el-date-table td.current:not(.disabled) .el-date-table-cell__text {
+  background: #ffd700 !important;
+  color: #1a1a2e !important;
+}
+
+.el-statistic__head {
+  color: #a0a0b8 !important;
+}
+
+.el-statistic__number {
+  color: #e0e0e0 !important;
+}
+
+.el-tabs--border-card > .el-tabs__header {
+  background: #1a1a2e !important;
+  border-bottom: 1px solid #2a2a4a !important;
+}
+
+.el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
+  background: #252540 !important;
+  color: #ffd700 !important;
+}
+
+.el-tabs--border-card > .el-tabs__header .el-tabs__item {
+  color: #a0a0b8 !important;
+}
+
+.el-empty__description {
+  color: #808090 !important;
 }
 
 .el-form-item__label {
