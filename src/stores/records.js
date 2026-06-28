@@ -78,7 +78,7 @@ export const useRecordStore = defineStore('records', () => {
     const maxPullRecords = todayRecords.filter(r => r.pullNumber === maxPull)
 
     const hasEnded = maxPullRecords.some(r =>
-      (r.type === 'mistake' && (r.level === 'wipe' || r.level === 'enrage')) ||
+      (r.type === 'mistake' && (r.level === 'wipe' || r.level === 'enrage' || r.level === 'unforgivable')) ||
       r.type === 'pull_end'
     )
     return hasEnded ? maxPull + 1 : maxPull
@@ -91,12 +91,56 @@ export const useRecordStore = defineStore('records', () => {
       r => r.date === date && r.pullNumber === pullNumber && r.teamId === tid
     )
     return pullRecords.some(r =>
-      (r.type === 'mistake' && (r.level === 'wipe' || r.level === 'enrage')) ||
+      (r.type === 'mistake' && (r.level === 'wipe' || r.level === 'enrage' || r.level === 'unforgivable')) ||
       r.type === 'pull_end'
     )
   }
 
-  // --- 添加犯错记录 ---
+  // --- 批量添加犯错记录（同一把内多人） ---
+  function addMistakes(entries) {
+    if (!entries || entries.length === 0) return []
+    const teamStore = useTeamStore()
+    const tid = teamStore.currentTeamId
+    const recordDate = entries[0].date || new Date().toISOString().split('T')[0]
+    const pullNumber = getCurrentPullNumber(recordDate)
+    const level = entries[0].level
+
+    const created = []
+    for (const e of entries) {
+      if (!e.playerId || !e.phase || !e.level) continue
+      const record = {
+        id: generateId(),
+        type: 'mistake',
+        teamId: tid,
+        date: recordDate,
+        pullNumber,
+        phase: e.phase,
+        playerId: e.playerId,
+        playerName: e.playerName,
+        description: e.description || '',
+        level: e.level,
+        timestamp: new Date().toISOString()
+      }
+      records.value.push(record)
+      created.push(record)
+    }
+    // 如果包含团灭/狂暴/罪无可恕，结束本把
+    if (level === 'wipe' || level === 'enrage' || level === 'unforgivable') {
+      records.value.push({
+        id: generateId(),
+        type: 'pull_end',
+        teamId: tid,
+        date: recordDate,
+        pullNumber,
+        phase: '',
+        timestamp: new Date().toISOString()
+      })
+    }
+    persist()
+    return created
+  }
+
+  // --- 添加犯错记录（单人） ---
   function addMistake({ playerId, playerName, phase, description, level, date }) {
     if (!playerId || !phase || !level) {
       throw new Error('请填写完整的犯错信息（队员、阶段、等级）')
@@ -312,7 +356,7 @@ export const useRecordStore = defineStore('records', () => {
       if (!statsMap[r.playerId]) {
         statsMap[r.playerId] = {
           playerId: r.playerId, playerName: r.playerName,
-          total: 0, byDate: {}, byLevel: { death: 0, wipe: 0, enrage: 0 }
+          total: 0, byDate: {}, byLevel: { death: 0, wipe: 0, enrage: 0, unforgivable: 0 }
         }
       }
       const stat = statsMap[r.playerId]
@@ -362,6 +406,32 @@ export const useRecordStore = defineStore('records', () => {
     teamStore.currentPhaseOrder = [...newOrder]
   }
 
+  // --- 加精 Pull ---
+  const STARRED_KEY = 'ff14_raid_starred_pulls'
+  const starredPulls = ref(loadStarred())
+
+  function loadStarred() {
+    try { return JSON.parse(localStorage.getItem(STARRED_KEY) || '[]') } catch { return [] }
+  }
+  function saveStarred() {
+    localStorage.setItem(STARRED_KEY, JSON.stringify(starredPulls.value))
+  }
+
+  function toggleStar(date, pullNumber) {
+    const key = `${date}||${pullNumber}`
+    const idx = starredPulls.value.indexOf(key)
+    if (idx === -1) {
+      starredPulls.value.push(key)
+    } else {
+      starredPulls.value.splice(idx, 1)
+    }
+    saveStarred()
+  }
+
+  function isStarred(date, pullNumber) {
+    return starredPulls.value.includes(`${date}||${pullNumber}`)
+  }
+
   // 获取指定队伍的总 Pull 数
   function getTeamPullCount(teamId) {
     const keys = new Set()
@@ -394,6 +464,7 @@ export const useRecordStore = defineStore('records', () => {
     getPhaseNameByValue,
     getCurrentPullNumber,
     isPullEnded,
+    addMistakes,
     addMistake,
     addProgress,
     markPullCleared,
@@ -407,6 +478,9 @@ export const useRecordStore = defineStore('records', () => {
     deleteRecord,
     deletePull,
     updatePhaseOrder,
+    starredPulls,
+    toggleStar,
+    isStarred,
     getTeamPullCount,
     getTeamRecordCounts,
     migrateIfNeeded,

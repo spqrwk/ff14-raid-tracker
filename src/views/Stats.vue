@@ -108,6 +108,11 @@
                   <span class="level-count enrage">{{ row.byLevel.enrage }}</span>
                 </template>
               </el-table-column>
+              <el-table-column label="罪无可恕" width="80" align="center">
+                <template #default="{ row }">
+                  <span class="level-count unforgivable">{{ row.byLevel.unforgivable || 0 }}</span>
+                </template>
+              </el-table-column>
             </el-table>
           </div>
         </el-card>
@@ -210,6 +215,8 @@
                     <span>团灭 {{ group.wipe }}</span>
                     <span class="sep">|</span>
                     <span>狂暴 {{ group.enrage }}</span>
+                    <span class="sep">|</span>
+                    <span class="unforgivable-text">罪无可恕 {{ group.unforgivable || 0 }}</span>
                   </div>
                   <div class="team-roles">
                     <span
@@ -301,6 +308,8 @@ function getSummaries({ columns, data }) {
       sums[index] = data.reduce((acc, row) => acc + row.byLevel.wipe, 0)
     } else if (label === '狂暴') {
       sums[index] = data.reduce((acc, row) => acc + row.byLevel.enrage, 0)
+    } else if (label === '罪无可恕') {
+      sums[index] = data.reduce((acc, row) => acc + (row.byLevel.unforgivable || 0), 0)
     } else if (label && label.includes('-')) {
       // MM-DD 格式的日期列
       const date = statDates.value.find(d => formatShortDate(d) === label)
@@ -371,7 +380,7 @@ const progressionChartOption = computed(() => {
     const pullRecords = allRecords.filter(
       r => r.date === d.date && r.pullNumber === d.pullNumber && r.type === 'mistake'
     )
-    const hasFatal = pullRecords.some(r => r.level === 'wipe' || r.level === 'enrage')
+    const hasFatal = pullRecords.some(r => r.level === 'wipe' || r.level === 'enrage' || r.level === 'unforgivable')
     if (hasFatal) {
       markPoints.push({
         coord: [i, d.maxPhaseValue],
@@ -478,17 +487,19 @@ const progressionChartOption = computed(() => {
 // --- 犯错等级分布饼图 ---
 const levelDistData = computed(() => {
   const stats = playerStats.value
-  let death = 0, wipe = 0, enrage = 0
+  let death = 0, wipe = 0, enrage = 0, unforgivable = 0
   for (const s of stats) {
     death += s.byLevel.death
     wipe += s.byLevel.wipe
     enrage += s.byLevel.enrage
+    unforgivable += (s.byLevel.unforgivable || 0)
   }
-  if (death + wipe + enrage === 0) return []
+  if (death + wipe + enrage + unforgivable === 0) return []
   return [
     { name: '减员', value: death, itemStyle: { color: '#e6a23c' } },
     { name: '团灭', value: wipe, itemStyle: { color: '#f56c6c' } },
-    { name: '狂暴', value: enrage, itemStyle: { color: '#c4568b' } }
+    { name: '狂暴', value: enrage, itemStyle: { color: '#c4568b' } },
+    { name: '罪无可恕', value: (() => { let u = 0; for (const s of stats) u += (s.byLevel.unforgivable || 0); return u; })(), itemStyle: { color: '#9b0033' } }
   ]
 })
 
@@ -612,10 +623,10 @@ const teamStatsData = computed(() => {
   }
 
   return ROLE_GROUPS.map(group => {
-    let total = 0, death = 0, wipe = 0, enrage = 0
+    let total = 0, death = 0, wipe = 0, enrage = 0, unforgivable = 0
     const roleCounts = {}
     for (const role of group.roles) {
-      roleCounts[role] = { role, count: 0, death: 0, wipe: 0, enrage: 0 }
+      roleCounts[role] = { role, count: 0, death: 0, wipe: 0, enrage: 0, unforgivable: 0 }
     }
 
     for (const r of mistakeRecords) {
@@ -626,18 +637,20 @@ const teamStatsData = computed(() => {
       if (r.level === 'death') death++
       else if (r.level === 'wipe') wipe++
       else if (r.level === 'enrage') enrage++
+      else if (r.level === 'unforgivable') unforgivable++
 
       if (roleCounts[role]) {
         roleCounts[role].count++
         if (r.level === 'death') roleCounts[role].death++
         else if (r.level === 'wipe') roleCounts[role].wipe++
         else if (r.level === 'enrage') roleCounts[role].enrage++
+        else if (r.level === 'unforgivable') roleCounts[role].unforgivable++
       }
     }
 
     return {
       ...group,
-      total, death, wipe, enrage,
+      total, death, wipe, enrage, unforgivable,
       roles: Object.values(roleCounts).filter(r => r.count > 0 || group.roles.includes(r.role))
     }
   }).filter(g => g.total > 0)
@@ -657,22 +670,23 @@ const teamBarOption = computed(() => {
   // 按角色位聚合
   const roleStats = {}
   for (const rl of ['MT', 'ST', 'H1', 'H2', 'D1', 'D2', 'D3', 'D4']) {
-    roleStats[rl] = { death: 0, wipe: 0, enrage: 0 }
+    roleStats[rl] = { death: 0, wipe: 0, enrage: 0, unforgivable: 0 }
   }
   for (const r of mistakeRecords) {
     const role = playerRoleMap[r.playerId]
     if (!role || !roleStats[role]) continue
-    if (r.level) roleStats[role][r.level]++
+    if (r.level && roleStats[role][r.level] !== undefined) roleStats[role][r.level]++
   }
 
   const roles = ['MT', 'ST', 'H1', 'H2', 'D1', 'D2', 'D3', 'D4']
   const deathData = roles.map(r => roleStats[r].death)
   const wipeData = roles.map(r => roleStats[r].wipe)
   const enrageData = roles.map(r => roleStats[r].enrage)
+  const unforgivableData = roles.map(r => roleStats[r].unforgivable || 0)
 
   // 找出最大值的角色位，高亮颜色
   const maxVal = Math.max(
-    ...deathData, ...wipeData, ...enrageData, 1
+    ...deathData, ...wipeData, ...enrageData, ...unforgivableData, 1
   )
 
   return {
@@ -684,7 +698,7 @@ const teamBarOption = computed(() => {
       textStyle: { color: '#e0e0e0', fontSize: 13 }
     },
     legend: {
-      data: ['减员', '团灭', '狂暴'],
+      data: ['减员', '团灭', '狂暴', '罪无可恕'],
       textStyle: { color: '#a0a0b8' },
       top: 0
     },
@@ -734,6 +748,16 @@ const teamBarOption = computed(() => {
           borderRadius: [4, 4, 0, 0]
         },
         emphasis: { itemStyle: { color: '#e070a0' } }
+      },
+      {
+        name: '罪无可恕',
+        type: 'bar',
+        data: unforgivableData,
+        itemStyle: {
+          color: '#9b0033',
+          borderRadius: [4, 4, 0, 0]
+        },
+        emphasis: { itemStyle: { color: '#d42050' } }
       }
     ]
   }
@@ -863,6 +887,12 @@ function formatShortDate(dateStr) {
   color: #c4568b;
 }
 
+.level-count.unforgivable {
+  color: #ff3366;
+  font-weight: 800;
+  text-shadow: 0 0 6px rgba(255, 51, 102, 0.3);
+}
+
 /* 图表行 */
 .charts-row {
   display: flex;
@@ -973,6 +1003,11 @@ function formatShortDate(dateStr) {
 .team-role-count {
   color: #ffd700;
   font-weight: 600;
+}
+
+.unforgivable-text {
+  color: #ff3366;
+  font-weight: 700;
 }
 
 .team-chart-wrap {

@@ -163,6 +163,12 @@
                     <span class="level-desc">导致狂暴 / 输出不足</span>
                   </span>
                 </el-radio-button>
+                <el-radio-button value="unforgivable">
+                  <span class="level-label">
+                    <el-tag size="small" effect="dark" color="#9b0033">罪无可恕</el-tag>
+                    <span class="level-desc">极其低级的重大失误</span>
+                  </span>
+                </el-radio-button>
               </el-radio-group>
             </el-form-item>
 
@@ -171,7 +177,7 @@
                 <el-icon><Check /></el-icon>
                 提交犯错记录
               </el-button>
-              <span v-if="mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage'" class="pull-end-hint">
+              <span v-if="mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage' || mistakeForm.level === 'unforgivable'" class="pull-end-hint">
                 ⚠ 提交后将自动结束本把 (第 {{ currentPull }} 把)，下一把为第 {{ currentPull + 1 }} 把
               </span>
             </el-form-item>
@@ -430,20 +436,24 @@ function submitMistake() {
     submitting.value = true
     try {
       const levelText = levelLabel(mistakeForm.level)
-      const isFatal = mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage'
+      const isFatal = mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage' || mistakeForm.level === 'unforgivable'
 
-      for (const pid of mistakeForm.playerIds) {
-        const player = playerStore.players.find(p => p.id === pid)
-        if (!player) continue
-        recordStore.addMistake({
-          playerId: pid,
-          playerName: player.name,
-          phase: mistakeForm.phase,
-          description: mistakeForm.description,
-          level: mistakeForm.level,
-          date: today.value
+      const entries = mistakeForm.playerIds
+        .map(pid => {
+          const player = playerStore.players.find(p => p.id === pid)
+          if (!player) return null
+          return {
+            playerId: pid,
+            playerName: player.name,
+            phase: mistakeForm.phase,
+            description: mistakeForm.description,
+            level: mistakeForm.level,
+            date: today.value
+          }
         })
-      }
+        .filter(Boolean)
+
+      recordStore.addMistakes(entries)
 
       const names = mistakeForm.playerIds
         .map(pid => playerStore.players.find(p => p.id === pid)?.name)
@@ -526,12 +536,12 @@ function handleClearPull() {
 
 // --- 辅助 ---
 function levelLabel(level) {
-  const map = { death: '减员', wipe: '团灭', enrage: '狂暴' }
+  const map = { death: '减员', wipe: '团灭', enrage: '狂暴', unforgivable: '罪无可恕' }
   return map[level] || level
 }
 
 function levelTagType(level) {
-  const map = { death: 'warning', wipe: 'danger', enrage: 'danger' }
+  const map = { death: 'warning', wipe: 'danger', enrage: 'danger', unforgivable: 'danger' }
   return map[level] || 'info'
 }
 </script>
@@ -713,6 +723,17 @@ function levelTagType(level) {
 .level-desc {
   font-size: 11px;
   color: #808090;
+}
+
+/* 罪无可恕标签特殊样式 */
+:deep(.el-radio-button[value="unforgivable"] .el-radio-button__inner) {
+  border-color: #ff3366 !important;
+}
+
+:deep(.el-radio-button[value="unforgivable"] .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: #3a1525 !important;
+  border-color: #ff3366 !important;
+  box-shadow: 0 0 10px rgba(255, 51, 102, 0.3) !important;
 }
 
 .pull-end-hint {

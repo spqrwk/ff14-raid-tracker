@@ -17,220 +17,221 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             value-format="YYYY-MM-DD"
-            style="width: 260px"
+            style="width: 240px"
           />
         </div>
         <div class="filter-item">
-          <span class="filter-label">队员筛选</span>
-          <el-select
-            v-model="filterPlayerId"
-            placeholder="全部队员"
-            clearable
-            style="width: 160px"
-          >
+          <span class="filter-label">队员</span>
+          <el-select v-model="filterPlayerId" placeholder="全部" clearable style="width: 140px">
             <el-option label="全部队员" value="" />
-            <el-option
-              v-for="p in playerStore.players"
-              :key="p.id"
-              :label="p.name"
-              :value="p.id"
-            />
+            <el-option v-for="p in playerStore.players" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </div>
         <div class="filter-item">
           <span class="filter-label">类型</span>
-          <el-select v-model="filterType" style="width: 120px">
+          <el-select v-model="filterType" style="width: 110px">
             <el-option label="全部" value="all" />
-            <el-option label="犯错记录" value="mistake" />
-            <el-option label="进度记录" value="progress" />
+            <el-option label="犯错" value="mistake" />
+            <el-option label="进度" value="progress" />
           </el-select>
         </div>
+        <el-checkbox v-if="activeTab === 'pulls'" v-model="showStarredOnly" style="margin-left:auto">
+          仅看加精
+        </el-checkbox>
       </div>
     </el-card>
 
-    <!-- 按日期分组展示 -->
-    <div v-if="groupedRecords.length === 0" class="empty-state">
-      <el-empty description="没有符合条件的记录" :image-size="120" />
-    </div>
-
-    <div v-else class="records-list">
-      <div v-for="group in groupedRecords" :key="group.date" class="date-group">
-        <div class="date-header">
-          <span class="date-label">{{ group.date }}</span>
-          <span class="date-stats">
-            {{ group.pulls.length }} 把 ·
-            犯错 {{ group.mistakeCount }} 次
-          </span>
+    <!-- 双维度 Tab -->
+    <el-tabs v-model="activeTab" type="border-card" class="sessions-tabs">
+      <!-- ====== 按日期 ====== -->
+      <el-tab-pane label="按日期" name="date">
+        <div v-if="groupedRecords.length === 0" class="empty-state">
+          <el-empty description="没有符合条件的记录" :image-size="100" />
         </div>
-
-        <div v-for="pull in group.pulls" :key="pull.pullNumber" class="pull-block">
-          <div class="pull-block-header">
-            <el-tag
-              :type="pull.ended ? 'danger' : ''"
-              size="small"
-              effect="dark"
-            >
-              第 {{ pull.pullNumber }} 把
-            </el-tag>
-            <span v-if="pull.maxPhase" class="pull-max-phase">
-              最远 {{ pull.maxPhase }}
-            </span>
-            <span v-if="pull.ended" class="pull-end-badge">已结束</span>
-            <el-popconfirm
-              title="确定删除这一把的所有记录？"
-              @confirm="handleDeletePull(group.date, pull.pullNumber)"
-            >
-              <template #reference>
-                <el-button type="danger" link size="small" style="margin-left: auto">
-                  <el-icon><Delete /></el-icon>
-                </el-button>
-              </template>
-            </el-popconfirm>
-          </div>
-
-          <el-table
-            :data="pull.records"
-            size="small"
-            style="width: 100%"
-            class="pull-table"
-          >
-            <el-table-column type="index" width="40" label="#" />
-            <el-table-column label="类型" width="80">
-              <template #default="{ row }">
-                <el-tag v-if="row.type === 'mistake'" type="warning" size="small" effect="dark">
-                  犯错
+        <div v-else class="records-list">
+          <div v-for="group in groupedRecords" :key="group.date" class="date-group">
+            <div class="date-header">
+              <span class="date-label">{{ group.date }}</span>
+              <span class="date-stats">{{ group.pulls.length }} 把 · 犯错 {{ group.mistakeCount }} 次</span>
+            </div>
+            <div v-for="pull in group.pulls" :key="pull.pullNumber" class="pull-block">
+              <div class="pull-block-header">
+                <el-tag :type="pull.ended ? 'danger' : ''" size="small" effect="dark">
+                  第 {{ pull.pullNumber }} 把
                 </el-tag>
-                <el-tag v-else-if="row.type === 'progress'" type="primary" size="small" effect="dark">
-                  进度
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="phase" label="阶段" width="80">
-              <template #default="{ row }">
-                <span class="phase-text">{{ row.phase || '-' }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="playerName" label="队员" width="100" v-if="filterType !== 'progress'">
-              <template #default="{ row }">
-                <span v-if="row.type === 'mistake'" class="player-text">{{ row.playerName }}</span>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="详情" min-width="200">
-              <template #default="{ row }">
-                <template v-if="row.type === 'mistake'">
-                  <el-tag
-                    :type="levelTagType(row.level)"
-                    size="small"
-                    effect="dark"
-                    class="level-mini-tag"
-                  >{{ levelLabel(row.level) }}</el-tag>
-                  <span v-if="row.description" class="desc-text">{{ row.description }}</span>
-                  <span v-else class="no-desc">-</span>
-                </template>
-                <template v-else>
-                  <span class="desc-text">{{ row.notes || '到达 ' + row.phase }}</span>
-                </template>
-              </template>
-            </el-table-column>
-            <el-table-column label="时间" width="80">
-              <template #default="{ row }">
-                <span class="time-text">{{ formatTime(row.timestamp) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="60" fixed="right">
-              <template #default="{ row }">
-                <el-popconfirm
-                  title="确定删除该条记录？"
-                  @confirm="handleDeleteRecord(row.id)"
-                >
+                <span v-if="pull.maxPhase" class="pull-max-phase">最远 {{ pull.maxPhase }}</span>
+                <span v-if="pull.ended" class="pull-end-badge">已结束</span>
+                <el-popconfirm title="确定删除这一把？" @confirm="handleDeletePull(group.date, pull.pullNumber)">
                   <template #reference>
-                    <el-button type="danger" link size="small">
-                      <el-icon><Delete /></el-icon>
-                    </el-button>
+                    <el-button type="danger" link size="small" style="margin-left:auto"><el-icon><Delete /></el-icon></el-button>
                   </template>
                 </el-popconfirm>
-              </template>
-            </el-table-column>
-          </el-table>
+              </div>
+              <el-table :data="pull.records" size="small" style="width:100%" class="pull-table">
+                <el-table-column type="index" width="40" />
+                <el-table-column label="类型" width="70">
+                  <template #default="{ row: r }">
+                    <el-tag v-if="r.type==='mistake'" type="warning" size="small" effect="dark">犯错</el-tag>
+                    <el-tag v-else type="primary" size="small" effect="dark">进度</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="phase" label="阶段" width="70">
+                  <template #default="{ row: r }"><span class="phase-text">{{ r.phase||'-' }}</span></template>
+                </el-table-column>
+                <el-table-column prop="playerName" label="队员" width="90">
+                  <template #default="{ row: r }">
+                    <span v-if="r.type==='mistake'" class="player-text">{{ r.playerName }}</span><span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="详情" min-width="180">
+                  <template #default="{ row: r }">
+                    <template v-if="r.type==='mistake'">
+                      <el-tag :type="levelTagType(r.level)" size="small" effect="dark" class="level-mini-tag">{{ levelLabel(r.level) }}</el-tag>
+                      <span v-if="r.description" class="desc-text">{{ r.description }}</span>
+                      <span v-else class="no-desc">-</span>
+                    </template>
+                    <template v-else><span class="desc-text">{{ r.notes||'到达 '+r.phase }}</span></template>
+                  </template>
+                </el-table-column>
+                <el-table-column label="时间" width="70">
+                  <template #default="{ row: r }"><span class="time-text">{{ formatTime(r.timestamp) }}</span></template>
+                </el-table-column>
+                <el-table-column width="50" fixed="right">
+                  <template #default="{ row: r }">
+                    <el-popconfirm title="删除？" @confirm="handleDeleteRecord(r.id)">
+                      <template #reference><el-button type="danger" link size="small"><el-icon><Delete /></el-icon></el-button></template>
+                    </el-popconfirm>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </el-tab-pane>
+
+      <!-- ====== 按把次 ====== -->
+      <el-tab-pane label="按把次" name="pulls">
+        <div v-if="pullList.length === 0" class="empty-state">
+          <el-empty description="没有符合条件的记录" :image-size="100" />
+        </div>
+        <div v-else class="pull-flat-list">
+          <div
+            v-for="pull in pullList"
+            :key="`${pull.date}||${pull.pullNumber}`"
+            class="pull-row-card"
+            :class="{ starred: recordStore.isStarred(pull.date, pull.pullNumber) }"
+          >
+            <div class="pull-row-main" @click="togglePullDetail(pull)">
+              <div class="pull-row-left">
+                <el-button
+                  link
+                  size="small"
+                  @click.stop="recordStore.toggleStar(pull.date, pull.pullNumber)"
+                  class="star-btn"
+                >
+                  <span v-if="recordStore.isStarred(pull.date, pull.pullNumber)" class="star-on">⭐</span>
+                  <span v-else class="star-off">☆</span>
+                </el-button>
+                <span class="pull-row-date">{{ pull.date.slice(5) }}</span>
+                <span class="pull-row-num">第{{ pull.pullNumber }}把</span>
+                <span class="pull-row-phase">{{ pull.maxPhase || '-' }}</span>
+              </div>
+              <div class="pull-row-right">
+                <span class="pull-row-mistakes" v-if="pull.mistakeCount > 0">犯错×{{ pull.mistakeCount }}</span>
+                <span class="pull-row-players">{{ pull.playerNames }}</span>
+                <el-icon class="expand-icon" :class="{ expanded: expandedPulls.has(`${pull.date}||${pull.pullNumber}`) }"><ArrowDown /></el-icon>
+              </div>
+            </div>
+            <!-- 展开详情 -->
+            <div
+              v-if="expandedPulls.has(`${pull.date}||${pull.pullNumber}`)"
+              class="pull-detail"
+            >
+              <el-table :data="pull.records" size="small" style="width:100%" class="pull-table">
+                <el-table-column type="index" width="40" />
+                <el-table-column label="类型" width="70">
+                  <template #default="{ row: r }">
+                    <el-tag v-if="r.type==='mistake'" type="warning" size="small" effect="dark">犯错</el-tag>
+                    <el-tag v-else type="primary" size="small" effect="dark">进度</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="phase" label="阶段" width="70">
+                  <template #default="{ row: r }"><span class="phase-text">{{ r.phase||'-' }}</span></template>
+                </el-table-column>
+                <el-table-column prop="playerName" label="队员" width="90">
+                  <template #default="{ row: r }"><span v-if="r.type==='mistake'" class="player-text">{{ r.playerName }}</span></template>
+                </el-table-column>
+                <el-table-column label="详情" min-width="180">
+                  <template #default="{ row: r }">
+                    <template v-if="r.type==='mistake'">
+                      <el-tag :type="levelTagType(r.level)" size="small" effect="dark" class="level-mini-tag">{{ levelLabel(r.level) }}</el-tag>
+                      <span v-if="r.description" class="desc-text">{{ r.description }}</span>
+                    </template>
+                    <template v-else><span class="desc-text">{{ r.notes||'到达 '+r.phase }}</span></template>
+                  </template>
+                </el-table-column>
+                <el-table-column width="50">
+                  <template #default="{ row: r }">
+                    <el-popconfirm title="删除？" @confirm="handleDeleteRecord(r.id)">
+                      <template #reference><el-button type="danger" link size="small"><el-icon><Delete /></el-icon></el-button></template>
+                    </el-popconfirm>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </div>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useRecordStore } from '../stores/records'
 import { usePlayerStore } from '../stores/players'
 
 const recordStore = useRecordStore()
 const playerStore = usePlayerStore()
 
-// --- 筛选条件 ---
+const activeTab = ref('date')
 const dateRange = ref([
   new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
   new Date().toISOString().split('T')[0]
 ])
 const filterPlayerId = ref('')
 const filterType = ref('all')
+const showStarredOnly = ref(false)
+
+const startDate = computed(() => dateRange.value?.[0] || '2000-01-01')
+const endDate = computed(() => dateRange.value?.[1] || '2099-12-31')
 
 // --- 筛选后的记录 ---
 const filteredRecords = computed(() => {
-  const startDate = dateRange.value?.[0] || '2000-01-01'
-  const endDate = dateRange.value?.[1] || '2099-12-31'
-
-  let records = recordStore.getRecordsByDateRange(startDate, endDate)
-
+  let records = recordStore.getRecordsByDateRange(startDate.value, endDate.value)
   if (filterPlayerId.value) {
-    records = records.filter(r =>
-      r.type !== 'mistake' || r.playerId === filterPlayerId.value
-    )
+    records = records.filter(r => r.type !== 'mistake' || r.playerId === filterPlayerId.value)
   }
-
-  if (filterType.value === 'mistake') {
-    records = records.filter(r => r.type === 'mistake')
-  } else if (filterType.value === 'progress') {
-    records = records.filter(r => r.type === 'progress')
-  }
-
+  if (filterType.value === 'mistake') records = records.filter(r => r.type === 'mistake')
+  else if (filterType.value === 'progress') records = records.filter(r => r.type === 'progress')
   return records
 })
 
-// --- 按日期 -> pull 分组 ---
+// --- 按日期分组 ---
 const groupedRecords = computed(() => {
   const groups = {}
-  const records = filteredRecords.value
-
-  for (const r of records) {
+  for (const r of filteredRecords.value) {
     if (r.type === 'pull_end') continue
-    if (!groups[r.date]) {
-      groups[r.date] = { date: r.date, pulls: {}, mistakeCount: 0 }
-    }
+    if (!groups[r.date]) groups[r.date] = { date: r.date, pulls: {}, mistakeCount: 0 }
     if (!groups[r.date].pulls[r.pullNumber]) {
-      groups[r.date].pulls[r.pullNumber] = {
-        pullNumber: r.pullNumber,
-        records: [],
-        maxPhase: '',
-        maxPhaseValue: 0,
-        ended: false
-      }
+      groups[r.date].pulls[r.pullNumber] = { pullNumber: r.pullNumber, records: [], maxPhase: '', maxPhaseValue: 0, ended: false }
     }
     const pull = groups[r.date].pulls[r.pullNumber]
     pull.records.push(r)
-
     const pv = recordStore.getPhaseValue(r.phase)
-    if (pv > pull.maxPhaseValue) {
-      pull.maxPhaseValue = pv
-      pull.maxPhase = r.phase
-    }
-
-    if (r.type === 'mistake') {
-      groups[r.date].mistakeCount++
-    }
+    if (pv > pull.maxPhaseValue) { pull.maxPhaseValue = pv; pull.maxPhase = r.phase }
+    if (r.type === 'mistake') groups[r.date].mistakeCount++
   }
-
-  // 标记已结束的 pull 并排序
   const result = []
   for (const date of Object.keys(groups).sort().reverse()) {
     const g = groups[date]
@@ -244,159 +245,150 @@ const groupedRecords = computed(() => {
   return result
 })
 
-// --- 操作 ---
-function handleDeleteRecord(id) {
-  recordStore.deleteRecord(id)
+// --- 按把次平铺列表 ---
+const pullList = computed(() => {
+  const data = recordStore.getProgressionData(startDate.value, endDate.value)
+  // 获取每条 pull 的玩家名
+  const result = data.map(pull => {
+    const pullRecords = filteredRecords.value.filter(
+      r => r.date === pull.date && r.pullNumber === pull.pullNumber && r.type === 'mistake'
+    )
+    const playerSet = new Set()
+    for (const r of pullRecords) {
+      if (r.playerName) playerSet.add(r.playerName)
+    }
+    return {
+      ...pull,
+      playerNames: Array.from(playerSet).join('、') || '-',
+      records: filteredRecords.value.filter(
+        r => r.date === pull.date && r.pullNumber === pull.pullNumber
+      ).sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+    }
+  })
+  // 筛选：加精
+  let filtered = result
+  if (showStarredOnly.value) {
+    filtered = filtered.filter(p => recordStore.isStarred(p.date, p.pullNumber))
+  }
+  // 反转：最新的在前
+  filtered = [...filtered].reverse()
+  return filtered
+})
+
+// --- 展开/折叠 ---
+const expandedPulls = reactive(new Set())
+function togglePullDetail(pull) {
+  const key = `${pull.date}||${pull.pullNumber}`
+  if (expandedPulls.has(key)) {
+    expandedPulls.delete(key)
+  } else {
+    expandedPulls.add(key)
+  }
 }
 
-function handleDeletePull(date, pullNumber) {
-  recordStore.deletePull(date, pullNumber)
-}
+// --- 操作 ---
+function handleDeleteRecord(id) { recordStore.deleteRecord(id) }
+function handleDeletePull(date, pn) { recordStore.deletePull(date, pn) }
 
 // --- 辅助 ---
-function levelLabel(level) {
-  const map = { death: '减员', wipe: '团灭', enrage: '狂暴' }
-  return map[level] || level
+function levelLabel(l) {
+  const m = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕' }
+  return m[l]||l
 }
-
-function levelTagType(level) {
-  const map = { death: 'warning', wipe: 'danger', enrage: 'danger' }
-  return map[level] || 'info'
+function levelTagType(l) {
+  const m = { death:'warning', wipe:'danger', enrage:'danger', unforgivable:'danger' }
+  return m[l]||'info'
 }
-
 function formatTime(iso) {
   if (!iso) return '-'
-  return new Date(iso).toLocaleTimeString('zh-CN', {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  return new Date(iso).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })
 }
 </script>
 
 <style scoped>
-.sessions-page {
-  max-width: 1000px;
-  margin: 0 auto;
-}
+.sessions-page { max-width: 1100px; margin: 0 auto; }
 
-/* 筛选栏 */
-.filter-card {
-  margin-bottom: 16px;
-}
+.filter-card { margin-bottom: 16px; }
+.filter-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.filter-item { display: flex; align-items: center; gap: 6px; }
+.filter-label { font-size: 13px; color: #808090; white-space: nowrap; }
 
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
+.sessions-tabs {
+  background: transparent;
+  border: none;
 }
-
-.filter-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.sessions-tabs :deep(.el-tabs__header) {
+  background: #1a1a2e;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
 }
+.sessions-tabs :deep(.el-tabs__item) { color: #a0a0b8; }
+.sessions-tabs :deep(.el-tabs__item.is-active) { color: #ffd700; background: #252540; }
+.sessions-tabs :deep(.el-tabs__content) { padding: 0; }
 
-.filter-label {
-  font-size: 13px;
-  color: #808090;
-  white-space: nowrap;
-}
+.empty-state { padding: 60px 0; }
 
-/* 空状态 */
-.empty-state {
-  padding: 60px 0;
-}
+/* 按日期 */
+.records-list { display: flex; flex-direction: column; gap: 20px; }
+.date-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #2a2a4a; }
+.date-label { font-size: 17px; font-weight: 700; color: #ffd700; }
+.date-stats { font-size: 13px; color: #808090; }
+.pull-block { margin-bottom: 12px; border: 1px solid #2a2a4a; border-radius: 6px; padding: 10px 14px; background: #141428; }
+.pull-block-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.pull-max-phase { font-size: 13px; color: #a0a0b8; }
+.pull-end-badge { font-size: 11px; padding: 2px 6px; border-radius: 3px; background: rgba(245,108,108,.15); color: #f56c6c; }
 
-/* 记录列表 */
-.records-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
+/* 按把次 */
+.pull-flat-list { display: flex; flex-direction: column; gap: 4px; }
 
-.date-group {
-  /* nothing extra needed */
-}
-
-.date-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #2a2a4a;
-}
-
-.date-label {
-  font-size: 17px;
-  font-weight: 700;
-  color: #ffd700;
-}
-
-.date-stats {
-  font-size: 13px;
-  color: #808090;
-}
-
-.pull-block {
-  margin-bottom: 12px;
+.pull-row-card {
   border: 1px solid #2a2a4a;
   border-radius: 6px;
-  padding: 10px 14px;
   background: #141428;
+  transition: border-color .15s;
 }
+.pull-row-card:hover { border-color: #3a3a5a; }
+.pull-row-card.starred { border-color: #ffd700; box-shadow: 0 0 8px rgba(255,215,0,.08); }
 
-.pull-block-header {
+.pull-row-main {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
 }
 
-.pull-max-phase {
-  font-size: 13px;
-  color: #a0a0b8;
+.pull-row-left { display: flex; align-items: center; gap: 10px; }
+.star-btn { padding: 0; font-size: 16px; }
+.star-on { filter: none; }
+.star-off { opacity: 0.3; }
+.star-btn:hover .star-off { opacity: 0.7; }
+
+.pull-row-date { color: #808090; font-size: 13px; }
+.pull-row-num { color: #e0e0e0; font-weight: 600; font-size: 13px; }
+.pull-row-phase { color: #ffd700; font-weight: 700; font-size: 13px; }
+
+.pull-row-right { display: flex; align-items: center; gap: 14px; }
+.pull-row-mistakes { color: #f56c6c; font-size: 12px; font-weight: 600; }
+.pull-row-players { color: #67c23a; font-size: 12px; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.expand-icon { color: #808090; transition: transform .2s; }
+.expand-icon.expanded { transform: rotate(180deg); }
+
+.pull-detail {
+  border-top: 1px solid #2a2a4a;
+  padding: 10px 14px;
+  background: #0f0f1a;
+  border-radius: 0 0 6px 6px;
 }
 
-.pull-end-badge {
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: rgba(245, 108, 108, 0.15);
-  color: #f56c6c;
-}
-
-.pull-table {
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.phase-text {
-  color: #ffd700;
-  font-weight: 600;
-}
-
-.player-text {
-  color: #67c23a;
-  font-weight: 600;
-}
-
-.desc-text {
-  color: #c0c0d0;
-  font-size: 13px;
-}
-
-.no-desc {
-  color: #606070;
-}
-
-.time-text {
-  font-size: 12px;
-  color: #808090;
-}
-
-.level-mini-tag {
-  margin-right: 6px;
-}
+/* 共享 */
+.pull-table { border-radius: 4px; overflow: hidden; }
+.phase-text { color: #ffd700; font-weight: 600; }
+.player-text { color: #67c23a; font-weight: 600; }
+.desc-text { color: #c0c0d0; font-size: 13px; }
+.no-desc { color: #606070; }
+.time-text { font-size: 12px; color: #808090; }
+.level-mini-tag { margin-right: 6px; }
 </style>
