@@ -46,15 +46,55 @@
         <router-view />
       </el-main>
     </el-container>
+
+    <!-- 首次访问提示 -->
+    <el-dialog
+      v-model="showWelcome"
+      title="📋 数据存储说明"
+      width="480px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
+      <div class="welcome-content">
+        <p>本站所有数据（队伍、队员、记录）均存储在<strong>浏览器本地</strong>（localStorage），不会上传到任何服务器。</p>
+        <ul>
+          <li>✅ 数据仅保存在当前浏览器中</li>
+          <li>⚠️ 清除浏览器缓存会导致数据丢失</li>
+          <li>💾 请定期到「数据管理」页面<strong>导出备份</strong></li>
+          <li>🔄 更换浏览器或设备需手动导入备份</li>
+        </ul>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="dismissWelcome">
+          知道了
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const currentRoute = computed(() => route.path)
+
+// 首次访问提示
+const WELCOME_KEY = 'ff14_raid_welcome_seen'
+const showWelcome = ref(false)
+
+function dismissWelcome() {
+  showWelcome.value = false
+  localStorage.setItem(WELCOME_KEY, '1')
+}
+
+onMounted(() => {
+  if (!localStorage.getItem(WELCOME_KEY)) {
+    showWelcome.value = true
+  }
+})
 </script>
 
 <style>
@@ -164,5 +204,27 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.welcome-content {
+  line-height: 1.8;
+  color: #c0c0d0;
+}
+
+.welcome-content p {
+  margin-bottom: 12px;
+}
+
+.welcome-content ul {
+  padding-left: 16px;
+}
+
+.welcome-content li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.welcome-content strong {
+  color: #ffd700;
 }
 </style>
