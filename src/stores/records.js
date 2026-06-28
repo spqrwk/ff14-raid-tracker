@@ -378,6 +378,15 @@ export const useRecordStore = defineStore('records', () => {
     return Array.from(dates).sort()
   }
 
+  // --- 修改记录 ---
+  function updateRecord(id, data) {
+    const idx = records.value.findIndex(r => r.id === id)
+    if (idx !== -1) {
+      records.value[idx] = { ...records.value[idx], ...data }
+      persist()
+    }
+  }
+
   // --- 删除记录 ---
   function deleteRecord(id) {
     records.value = records.value.filter(r => r.id !== id)
@@ -476,6 +485,7 @@ export const useRecordStore = defineStore('records', () => {
     getPlayerMistakeStats,
     getDateRangeForStats,
     deleteRecord,
+    updateRecord,
     deletePull,
     updatePhaseOrder,
     starredPulls,

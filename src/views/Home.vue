@@ -298,6 +298,9 @@
                   effect="dark"
                 >{{ levelLabel(rec.level) }}</el-tag>
                 <span v-if="rec.description" class="rec-desc">{{ rec.description }}</span>
+                <el-button type="warning" link size="small" class="rec-edit-btn" @click="openEditDialog(rec)">
+                  <el-icon><Edit /></el-icon>
+                </el-button>
               </template>
               <template v-else-if="rec.type === 'progress'">
                 <span class="rec-progress-tag">
@@ -311,6 +314,43 @@
         </div>
       </div>
     </el-card>
+
+    <!-- 修改记录弹窗 -->
+    <el-dialog v-model="editVisible" title="修改记录" width="420px" destroy-on-close>
+      <el-form ref="editFormRef" :model="editForm" label-position="top" v-if="editForm.id">
+        <el-form-item label="队员">
+          <el-select v-model="editForm.playerId" filterable style="width:100%">
+            <el-option v-for="p in playerStore.teamPlayers" :key="p.id" :label="p.name" :value="p.id" />
+          </el-select>
+        </el-form-item>
+        <el-row :gutter="12">
+          <el-col :span="12">
+            <el-form-item label="阶段">
+              <el-select v-model="editForm.phase" filterable allow-create style="width:100%">
+                <el-option v-for="p in selectablePhases" :key="p" :label="p" :value="p" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="等级">
+              <el-select v-model="editForm.level" style="width:100%">
+                <el-option label="减员" value="death" />
+                <el-option label="团灭" value="wipe" />
+                <el-option label="狂暴" value="enrage" />
+                <el-option label="罪无可恕" value="unforgivable" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="内容">
+          <el-input v-model="editForm.description" type="textarea" :rows="2" maxlength="200" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleEditSave">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -537,6 +577,38 @@ function handleClearPull() {
 }
 
 // --- 辅助 ---
+// --- 修改记录 ---
+const editVisible = ref(false)
+const editFormRef = ref(null)
+const editForm = reactive({ id: '', playerId: '', playerName: '', phase: '', level: '', description: '' })
+
+function openEditDialog(rec) {
+  editForm.id = rec.id
+  editForm.playerId = rec.playerId
+  editForm.playerName = rec.playerName
+  editForm.phase = rec.phase
+  editForm.level = rec.level
+  editForm.description = rec.description || ''
+  editVisible.value = true
+}
+
+function handleEditSave() {
+  if (!editForm.playerId || !editForm.phase || !editForm.level) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+  const player = playerStore.teamPlayers.find(p => p.id === editForm.playerId)
+  recordStore.updateRecord(editForm.id, {
+    playerId: editForm.playerId,
+    playerName: player?.name || editForm.playerName,
+    phase: editForm.phase,
+    level: editForm.level,
+    description: editForm.description
+  })
+  ElMessage.success('记录已修改')
+  editVisible.value = false
+}
+
 function levelLabel(level) {
   const map = { death: '减员', wipe: '团灭', enrage: '狂暴', unforgivable: '罪无可恕' }
   return map[level] || level
@@ -846,6 +918,11 @@ function levelTagType(level) {
 .rec-phase {
   color: #ffd700;
   font-weight: 600;
+}
+
+.rec-edit-btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .rec-desc {
