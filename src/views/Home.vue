@@ -92,7 +92,7 @@
                   <span class="player-check-role" :style="{ background: roleColor(role) }">{{ role }}</span>
                   <template v-if="rolePlayerCount[role] > 0">
                     <el-checkbox
-                      v-for="p in playerStore.playersByRole[role]"
+                      v-for="p in playerStore.activePlayersByRole[role]"
                       :key="p.id"
                       :model-value="mistakeForm.playerIds"
                       :label="p.id"
@@ -370,7 +370,7 @@ const totalMistakesToday = computed(() =>
 const rolePlayerCount = computed(() => {
   const counts = {}
   for (const r of ROLES) {
-    counts[r] = playerStore.playersByRole[r]?.length || 0
+    counts[r] = playerStore.activePlayersByRole[r]?.length || 0
   }
   return counts
 })
@@ -400,7 +400,7 @@ function togglePlayer(id, checked) {
 function checkAllPlayers() {
   const all = []
   for (const role of ROLES) {
-    for (const p of (playerStore.playersByRole[role] || [])) {
+    for (const p of (playerStore.activePlayersByRole[role] || [])) {
       all.push(p.id)
     }
   }
@@ -859,5 +859,15 @@ function levelTagType(level) {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+@media (max-width: 768px) {
+  .home-page { padding: 0 4px; }
+  .status-bar { gap: 8px; }
+  .status-value { font-size: 14px !important; }
+  .status-value.pull-num { font-size: 16px !important; }
+  .player-check-grid { grid-template-columns: repeat(2, 1fr); }
+  .pull-group { padding: 8px 10px; }
+  .record-item { font-size: 12px; gap: 4px; }
+  .rec-player { min-width: auto; }
 }
 </style>

@@ -1013,4 +1013,10 @@ function formatShortDate(dateStr) {
 .team-chart-wrap {
   margin-top: 16px;
 }
+@media (max-width: 768px) {
+  .stats-page { padding: 0 4px; }
+  .stats-tabs :deep(.el-tabs__item) { padding: 0 12px !important; font-size: 12px; }
+  .table-wrap { overflow-x: auto; }
+  .team-cards-row .el-col { flex: 0 0 100% !important; max-width: 100% !important; margin-bottom: 8px; }
+}
 </style>

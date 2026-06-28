@@ -25,7 +25,7 @@ export const usePlayerStore = defineStore('players', () => {
     savePlayers(players.value)
   }
 
-  // ---- 数据迁移：旧数据没有 teamId，自动关联到当前队伍 ----
+  // ---- 数据迁移：旧数据没有 teamId / active 字段 ----
   function migrateIfNeeded() {
     const teamStore = useTeamStore()
     const team = teamStore.currentTeam
@@ -34,6 +34,10 @@ export const usePlayerStore = defineStore('players', () => {
     for (const p of players.value) {
       if (!p.teamId) {
         p.teamId = team.id
+        changed = true
+      }
+      if (p.active === undefined) {
+        p.active = true
         changed = true
       }
     }
@@ -64,6 +68,7 @@ export const usePlayerStore = defineStore('players', () => {
       name: name.trim(),
       role: role || '',
       jobs: jobs,
+      active: true,
       createdAt: new Date().toISOString()
     }
     players.value.push(player)
@@ -96,6 +101,11 @@ export const usePlayerStore = defineStore('players', () => {
     teamPlayers.value.map(p => p.name)
   )
 
+  // 当前队伍上场队员（active=true）
+  const activeTeamPlayers = computed(() =>
+    teamPlayers.value.filter(p => p.active !== false)
+  )
+
   // 按角色分组（仅当前队伍）
   const playersByRole = computed(() => {
     const map = {}
@@ -104,6 +114,24 @@ export const usePlayerStore = defineStore('players', () => {
     }
     return map
   })
+
+  // 按角色分组（仅上场队员，犯错记录用）
+  const activePlayersByRole = computed(() => {
+    const map = {}
+    for (const role of ROLES) {
+      map[role] = activeTeamPlayers.value.filter(p => p.role === role)
+    }
+    return map
+  })
+
+  // 切换上下场
+  function toggleActive(id) {
+    const player = players.value.find(p => p.id === id)
+    if (player) {
+      player.active = !(player.active !== false)
+      persist()
+    }
+  }
 
   // 获取某个角色下的所有队员
   function getPlayersByRole(role) {
@@ -126,11 +154,14 @@ export const usePlayerStore = defineStore('players', () => {
   return {
     players,
     teamPlayers,
+    activeTeamPlayers,
+    activePlayersByRole,
     playerNames,
     playersByRole,
     addPlayer,
     removePlayer,
     updatePlayer,
+    toggleActive,
     findByName,
     getPlayersByRole,
     getRoleLabel,

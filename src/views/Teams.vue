@@ -315,4 +315,9 @@ function handleDelete(id) {
   gap: 4px;
   flex-shrink: 0;
 }
+@media (max-width: 768px) {
+  .teams-page { padding: 0 4px; }
+  .team-card-body { flex-direction: column; align-items: stretch; }
+  .team-actions { justify-content: flex-end; }
+}
 </style>

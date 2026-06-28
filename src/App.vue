@@ -1,8 +1,15 @@
 <template>
   <div id="app-container">
+    <!-- 移动端汉堡按钮 -->
+    <div class="mobile-toggle" @click="sidebarOpen = !sidebarOpen">
+      <el-icon :size="24"><component :is="sidebarOpen ? 'Close' : 'Menu'" /></el-icon>
+    </div>
+
+    <!-- 遮罩层 -->
+    <div v-if="sidebarOpen" class="mobile-overlay" @click="sidebarOpen = false" />
+
     <el-container>
-      <!-- 侧边导航 -->
-      <el-aside width="220px" class="app-aside">
+      <el-aside width="220px" class="app-aside" :class="{ 'sidebar-open': sidebarOpen }">
         <div class="logo">
           <el-icon :size="28"><Aim /></el-icon>
           <span>FF14 开荒记录</span>
@@ -13,6 +20,7 @@
           background-color="#1a1a2e"
           text-color="#a0a0b8"
           active-text-color="#ffd700"
+          @select="sidebarOpen = false"
         >
           <el-menu-item index="/">
             <el-icon><Monitor /></el-icon>
@@ -41,7 +49,6 @@
         </el-menu>
       </el-aside>
 
-      <!-- 主内容区 -->
       <el-main class="app-main">
         <router-view />
       </el-main>
@@ -51,7 +58,7 @@
     <el-dialog
       v-model="showWelcome"
       title="📋 数据存储说明"
-      width="480px"
+      :width="isMobile ? '90%' : '480px'"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       :show-close="false"
@@ -66,43 +73,40 @@
         </ul>
       </div>
       <template #footer>
-        <el-button type="primary" @click="dismissWelcome">
-          知道了
-        </el-button>
+        <el-button type="primary" @click="dismissWelcome">知道了</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 const currentRoute = computed(() => route.path)
 
+// 移动端
+const sidebarOpen = ref(false)
+const isMobile = ref(window.innerWidth < 768)
+function onResize() { isMobile.value = window.innerWidth < 768 }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
 // 首次访问提示
 const WELCOME_KEY = 'ff14_raid_welcome_seen'
 const showWelcome = ref(false)
-
 function dismissWelcome() {
   showWelcome.value = false
   localStorage.setItem(WELCOME_KEY, '1')
 }
-
 onMounted(() => {
-  if (!localStorage.getItem(WELCOME_KEY)) {
-    showWelcome.value = true
-  }
+  if (!localStorage.getItem(WELCOME_KEY)) showWelcome.value = true
 })
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
   font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
@@ -110,30 +114,38 @@ body {
   color: #e0e0e0;
 }
 
-#app-container {
-  min-height: 100vh;
+#app-container { min-height: 100vh; }
+
+/* 移动端汉堡按钮 */
+.mobile-toggle {
+  display: none;
+  position: fixed; top: 10px; left: 10px; z-index: 1000;
+  width: 40px; height: 40px;
+  background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 8px;
+  align-items: center; justify-content: center;
+  color: #ffd700; cursor: pointer;
+}
+
+.mobile-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 99;
+  background: rgba(0,0,0,.5);
 }
 
 .app-aside {
   background: #1a1a2e;
   min-height: 100vh;
   border-right: 1px solid #2a2a4a;
+  transition: transform .25s;
 }
 
 .logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 20px;
-  color: #ffd700;
-  font-size: 18px;
-  font-weight: bold;
-  border-bottom: 1px solid #2a2a4a;
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px; color: #ffd700; font-size: 18px;
+  font-weight: bold; border-bottom: 1px solid #2a2a4a;
 }
 
-.el-menu {
-  border-right: none !important;
-}
+.el-menu { border-right: none !important; }
 
 .app-main {
   background: #0f0f1a;
@@ -141,16 +153,13 @@ body {
   min-height: 100vh;
 }
 
-/* Element Plus 暗色主题覆盖 */
+/* ====== Element Plus 暗色主题 ====== */
 .el-card {
   background: #1a1a2e !important;
   border: 1px solid #2a2a4a !important;
   color: #e0e0e0 !important;
 }
-
-.el-card__header {
-  border-bottom: 1px solid #2a2a4a !important;
-}
+.el-card__header { border-bottom: 1px solid #2a2a4a !important; }
 
 .el-table {
   background: #1a1a2e !important;
@@ -173,121 +182,64 @@ body {
   border: 1px solid #2a2a4a !important;
   color: #e0e0e0 !important;
 }
-
-.el-popper .el-popconfirm__action {
-  justify-content: flex-end;
-}
-
-.el-tooltip__content {
-  background: #252540 !important;
-  color: #e0e0e0 !important;
-}
+.el-popconfirm__action { justify-content: flex-end; }
+.el-tooltip__content { background: #252540 !important; color: #e0e0e0 !important; }
 
 .el-dialog {
   background: #1a1a2e !important;
   border: 1px solid #2a2a4a !important;
 }
-
-.el-dialog__title {
-  color: #e0e0e0 !important;
-}
+.el-dialog__title { color: #e0e0e0 !important; }
 
 .el-select-dropdown {
   background: #1a1a2e !important;
   border: 1px solid #2a2a4a !important;
 }
-
-.el-select-dropdown__item {
-  color: #c0c0d0 !important;
-}
-
+.el-select-dropdown__item { color: #c0c0d0 !important; }
 .el-select-dropdown__item.hover,
-.el-select-dropdown__item:hover {
-  background: #252540 !important;
-}
-
-.el-select-dropdown__item.selected {
-  color: #ffd700 !important;
-}
+.el-select-dropdown__item:hover { background: #252540 !important; }
+.el-select-dropdown__item.selected { color: #ffd700 !important; }
 
 .el-date-picker {
   background: #1a1a2e !important;
   border: 1px solid #2a2a4a !important;
   color: #e0e0e0 !important;
 }
-
 .el-picker-panel {
   background: #1a1a2e !important;
   border: 1px solid #2a2a4a !important;
 }
-
-.el-picker-panel__body {
-  background: #1a1a2e !important;
-}
-
-.el-date-table th {
-  color: #808090 !important;
-}
-
-.el-date-table td {
-  color: #c0c0d0 !important;
-}
-
+.el-picker-panel__body { background: #1a1a2e !important; }
+.el-date-table th { color: #808090 !important; }
+.el-date-table td { color: #c0c0d0 !important; }
 .el-date-table td.current:not(.disabled) .el-date-table-cell__text {
-  background: #ffd700 !important;
-  color: #1a1a2e !important;
+  background: #ffd700 !important; color: #1a1a2e !important;
 }
 
-.el-statistic__head {
-  color: #a0a0b8 !important;
-}
-
-.el-statistic__number {
-  color: #e0e0e0 !important;
-}
+.el-statistic__head { color: #a0a0b8 !important; }
+.el-statistic__number { color: #e0e0e0 !important; }
 
 .el-tabs--border-card > .el-tabs__header {
   background: #1a1a2e !important;
   border-bottom: 1px solid #2a2a4a !important;
 }
-
 .el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
-  background: #252540 !important;
-  color: #ffd700 !important;
+  background: #252540 !important; color: #ffd700 !important;
 }
+.el-tabs--border-card > .el-tabs__header .el-tabs__item { color: #a0a0b8 !important; }
 
-.el-tabs--border-card > .el-tabs__header .el-tabs__item {
-  color: #a0a0b8 !important;
-}
-
-.el-empty__description {
-  color: #808090 !important;
-}
-
-.el-form-item__label {
-  color: #c0c0d0 !important;
-}
+.el-empty__description { color: #808090 !important; }
+.el-form-item__label { color: #c0c0d0 !important; }
 
 .el-input__wrapper {
   background: #252540 !important;
   box-shadow: 0 0 0 1px #3a3a5a inset !important;
 }
+.el-input__inner { color: #e0e0e0 !important; }
+.el-select .el-input__wrapper { background: #252540 !important; }
 
-.el-input__inner {
-  color: #e0e0e0 !important;
-}
-
-.el-select .el-input__wrapper {
-  background: #252540 !important;
-}
-
-.el-statistic__head {
-  color: #a0a0b8 !important;
-}
-
-.el-statistic__number {
-  color: #e0e0e0 !important;
-}
+.el-statistic__head { color: #a0a0b8 !important; }
+.el-statistic__number { color: #e0e0e0 !important; }
 
 .page-header {
   margin-bottom: 20px;
@@ -299,25 +251,56 @@ body {
   gap: 10px;
 }
 
-.welcome-content {
-  line-height: 1.8;
-  color: #c0c0d0;
-}
+.welcome-content { line-height: 1.8; color: #c0c0d0; }
+.welcome-content p { margin-bottom: 12px; }
+.welcome-content ul { padding-left: 16px; }
+.welcome-content li { margin-bottom: 6px; font-size: 14px; }
+.welcome-content strong { color: #ffd700; }
 
-.welcome-content p {
-  margin-bottom: 12px;
-}
+/* ====== 移动端适配 ====== */
+@media (max-width: 768px) {
+  .mobile-toggle { display: flex; }
+  .mobile-overlay { display: block; }
 
-.welcome-content ul {
-  padding-left: 16px;
-}
+  .app-aside {
+    position: fixed; left: 0; top: 0; z-index: 100;
+    transform: translateX(-100%);
+  }
+  .app-aside.sidebar-open { transform: translateX(0); }
 
-.welcome-content li {
-  margin-bottom: 6px;
-  font-size: 14px;
-}
+  .app-main {
+    padding: 56px 12px 12px 12px;
+    min-height: 100vh;
+  }
 
-.welcome-content strong {
-  color: #ffd700;
+  .page-header {
+    font-size: 18px;
+    margin-bottom: 12px;
+  }
+
+  /* 表格横向滚动 */
+  .el-table { font-size: 12px !important; }
+  .el-table :deep(td), .el-table :deep(th) { padding: 6px 4px !important; }
+
+  /* 弹窗全宽 */
+  .el-dialog { width: 92% !important; margin: 10px auto !important; }
+
+  /* 统计卡片 */
+  .el-row { flex-wrap: wrap !important; }
+  .el-col { flex: 0 0 100% !important; max-width: 100% !important; margin-bottom: 8px; }
+
+  /* 筛选栏竖排 */
+  .filter-bar { flex-direction: column !important; align-items: stretch !important; }
+  .filter-item { flex-direction: column !important; align-items: stretch !important; }
+  .filter-item .filter-label { margin-bottom: 4px; }
+  .el-date-picker { width: 100% !important; }
+
+  /* 状态栏 */
+  .status-bar { flex-wrap: wrap !important; gap: 8px !important; }
+  .status-divider { display: none !important; }
+
+  /* 犯错等级 */
+  .level-radio-group { flex-direction: column !important; }
+  .level-radio-group .el-radio-button { width: 100% !important; }
 }
 </style>

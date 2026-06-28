@@ -107,15 +107,30 @@
             <span v-else class="no-data">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="队员名称" min-width="160">
+        <el-table-column label="状态" width="70" align="center">
           <template #default="{ row }">
-            <span class="player-name">{{ row.name }}</span>
+            <el-tag v-if="row.active !== false" type="success" size="small" effect="dark">上场</el-tag>
+            <el-tag v-else type="info" size="small" effect="dark">下场</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column prop="name" label="队员名称" min-width="130">
+          <template #default="{ row }">
+            <span class="player-name" :class="{ offline: row.active === false }">{{ row.name }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link size="small" @click="openEditDialog(row)">
               <el-icon><Edit /></el-icon>
+            </el-button>
+            <el-button
+              :type="row.active !== false ? 'warning' : 'success'"
+              link
+              size="small"
+              @click="playerStore.toggleActive(row.id)"
+            >
+              <el-icon><component :is="row.active !== false ? 'Remove' : 'Check'" /></el-icon>
+              {{ row.active !== false ? '下场' : '上场' }}
             </el-button>
             <el-popconfirm title="确定删除该成员？" @confirm="handleDelete(row.id)">
               <template #reference>
@@ -339,6 +354,12 @@ function handleDelete(id) {
 .table-card { margin-bottom: 16px; }
 
 .player-name { color: #ffd700; font-weight: 600; }
+.player-name.offline { color: #606070; text-decoration: line-through; }
 
 .no-data { color: #606070; font-size: 13px; }
+@media (max-width: 768px) {
+  .players-page { padding: 0 4px; }
+  .batch-table .col-name { width: 140px; }
+  .batch-table .col-role { width: 50px; }
+}
 </style>

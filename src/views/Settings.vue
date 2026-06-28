@@ -431,4 +431,9 @@ async function executeClear() {
 .confirm-hint { color: #c0c0d0; font-size: 13px; margin-bottom: 10px; }
 .confirm-text { color: #f56c6c; background: rgba(245, 108, 108, 0.1); padding: 2px 6px; border-radius: 3px; }
 .confirm-input-row { display: flex; gap: 10px; align-items: center; }
+@media (max-width: 768px) {
+  .settings-page { padding: 0 4px; }
+  .backup-grid { grid-template-columns: 1fr; }
+  .confirm-input-row { flex-direction: column; }
+}
 </style>

@@ -391,4 +391,10 @@ function formatTime(iso) {
 .no-desc { color: #606070; }
 .time-text { font-size: 12px; color: #808090; }
 .level-mini-tag { margin-right: 6px; }
+@media (max-width: 768px) {
+  .sessions-page { padding: 0 4px; }
+  .pull-row-right { flex-wrap: wrap; gap: 6px; font-size: 11px; }
+  .pull-row-players { max-width: 100px; }
+  .pull-row-main { padding: 8px 10px; }
+}
 </style>
