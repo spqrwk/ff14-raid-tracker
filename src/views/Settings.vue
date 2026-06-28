@@ -157,6 +157,7 @@
         </div>
       </div>
     </el-card>
+
   </div>
 </template>
 
@@ -431,6 +432,13 @@ async function executeClear() {
 .confirm-hint { color: #c0c0d0; font-size: 13px; margin-bottom: 10px; }
 .confirm-text { color: #f56c6c; background: rgba(245, 108, 108, 0.1); padding: 2px 6px; border-radius: 3px; }
 .confirm-input-row { display: flex; gap: 10px; align-items: center; }
+
+.copyright {
+  text-align: center; color: #ffd700; font-size: 14px; font-weight: 600;
+  padding: 24px 0 8px; margin-top: 24px;
+  border-top: 1px solid #2a2a4a;
+}
+.copyright strong { color: #ffd700; }
 @media (max-width: 768px) {
   .settings-page { padding: 0 4px; }
   .backup-grid { grid-template-columns: 1fr; }

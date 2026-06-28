@@ -50,6 +50,10 @@
             <el-icon><Setting /></el-icon>
             <span>数据管理</span>
           </el-menu-item>
+          <el-menu-item index="" disabled class="author-item">
+            <el-icon><UserFilled /></el-icon>
+            <span>洛辰辰@海猫茶屋</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -151,10 +155,63 @@ body {
 
 .el-menu { border-right: none !important; }
 
+.sidebar-author {
+  position: absolute; bottom: 20px; left: 0; right: 0;
+  text-align: center; color: #ffd700; font-size: 13px; font-weight: 600;
+}
+
+.logo-author {
+  display: block;
+  font-size: 11px;
+  color: #ffd700;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.sidebar-footer {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #ffd700;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .app-main {
   background: #0f0f1a;
   padding: 24px;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.global-footer {
+  text-align: center;
+  color: #c0c0d0;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 20px 0 4px;
+  border-top: 1px solid #1a1a3a;
+}
+
+.author-item.el-menu-item.is-disabled {
+  color: #ffd700 !important;
+  opacity: 1 !important;
+  cursor: default;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  border-top: 1px solid #2a2a4a;
+  margin-top: 8px;
+  padding-top: 20px;
+}
+.author-item.el-menu-item.is-disabled .el-icon {
+  color: #ffd700 !important;
 }
 
 /* ====== Element Plus 暗色主题 ====== */
@@ -260,6 +317,8 @@ body {
 .welcome-content ul { padding-left: 16px; }
 .welcome-content li { margin-bottom: 6px; font-size: 14px; }
 .welcome-content strong { color: #ffd700; }
+
+.global-footer strong { color: #ffd700; }
 
 /* ====== 移动端适配 ====== */
 @media (max-width: 768px) {

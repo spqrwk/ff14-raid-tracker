@@ -1,7 +1,7 @@
 <template>
   <div class="help-page">
     <div class="page-header">
-      <el-icon><Reading /></el-icon>
+      <el-icon><Notebook /></el-icon>
       <span>使用帮助</span>
     </div>
 
@@ -53,13 +53,14 @@ D3  ──── [________]    D4  ──── [________]</pre>
           <li><strong>勾选</strong>犯错的队员（可多选）—— 只显示上场队员，请假的不会出现</li>
           <li>选择 <strong>P几</strong>（阶段）</li>
           <li>填写犯错内容（选填）</li>
-          <li>选择 <strong>犯错等级</strong>：
-            <el-tag type="warning" size="small" effect="dark">减员</el-tag> 仅减员，不影响继续
-            <el-tag type="danger" size="small" effect="dark">团灭</el-tag> 导致团灭，本把结束
-            <el-tag type="danger" size="small" effect="dark" color="#8b0045">狂暴</el-tag> 导致狂暴/输出不足
-            <el-tag size="small" effect="dark" color="#9b0033">罪无可恕</el-tag> 极其低级的重大失误
-          </li>
         </ul>
+        <p class="level-demo">
+          <strong>犯错等级</strong>：
+          <span class="level-tag demo-death">减员</span> 仅减员，不影响继续 ·
+          <span class="level-tag demo-wipe">团灭</span> 导致团灭，本把结束 ·
+          <span class="level-tag demo-enrage">狂暴</span> 导致狂暴/输出不足 ·
+          <span class="level-tag demo-unforgivable">罪无可恕</span> 极其低级的重大失误
+        </p>
         <div class="help-tip">💡 <strong>团灭、狂暴、罪无可恕</strong> 会自动结束本把，下一把 Pull 号 +1。多人同时勾选也只算同一把。</div>
 
         <h3>记录进度</h3>
@@ -144,130 +145,81 @@ D3  ──── [________]    D4  ──── [________]</pre>
 </template>
 
 <style scoped>
-.help-page {
-  max-width: 800px;
-  margin: 0 auto;
-}
+.help-page { max-width: 800px; margin: 0 auto; }
 
-.help-content {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
+.help-content { display: flex; flex-direction: column; gap: 28px; }
 
 .help-section h2 {
-  font-size: 19px;
-  color: #ffd700;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #2a2a4a;
+  font-size: 19px; color: #ffd700; margin-bottom: 12px;
+  padding-bottom: 8px; border-bottom: 1px solid #2a2a4a;
 }
 
-.help-section h3 {
-  font-size: 15px;
-  color: #e0e0e0;
-  margin: 14px 0 8px;
-}
+.help-section h3 { font-size: 15px; color: #e0e0e0; margin: 14px 0 8px; }
 
-.help-section h4 {
-  font-size: 14px;
-  color: #c0c0d0;
-  margin-bottom: 4px;
-}
+.help-section h4 { font-size: 14px; color: #c0c0d0; margin-bottom: 4px; }
 
-.help-section p {
-  color: #a0a0b8;
-  line-height: 1.8;
-  margin-bottom: 8px;
-}
+.help-section p { color: #a0a0b8; line-height: 1.8; margin-bottom: 8px; }
 
-.help-section strong {
-  color: #e0e0e0;
-}
+.help-section strong { color: #e0e0e0; }
 
 .help-section code {
-  background: #252540;
-  padding: 2px 6px;
-  border-radius: 3px;
-  color: #ffd700;
-  font-size: 13px;
+  background: #252540; padding: 2px 6px; border-radius: 3px;
+  color: #ffd700; font-size: 13px;
 }
 
-.help-section ul {
-  padding-left: 20px;
-  margin-bottom: 8px;
+.help-section ul { padding-left: 20px; margin-bottom: 8px; }
+
+.help-section li { color: #a0a0b8; line-height: 2; font-size: 14px; }
+
+.level-demo {
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: wrap; line-height: 2.2;
 }
 
-.help-section li {
-  color: #a0a0b8;
-  line-height: 2;
-  font-size: 14px;
+.level-tag {
+  display: inline-block; padding: 1px 8px; border-radius: 3px;
+  color: #fff; font-size: 12px; font-weight: 700;
 }
+
+.demo-death  { background: #e6a23c; }
+.demo-wipe   { background: #f56c6c; }
+.demo-enrage { background: #c4568b; }
+.demo-unforgivable { background: #9b0033; }
 
 .demo-block {
-  background: #141428;
-  border: 1px solid #2a2a4a;
-  border-radius: 6px;
-  padding: 14px;
-  margin: 10px 0;
+  background: #141428; border: 1px solid #2a2a4a;
+  border-radius: 6px; padding: 14px; margin: 10px 0;
 }
 
 .demo-block pre {
-  color: #67c23a;
-  font-family: 'Consolas', monospace;
-  font-size: 13px;
-  line-height: 1.8;
-  margin: 0;
+  color: #67c23a; font-family: 'Consolas', monospace;
+  font-size: 13px; line-height: 1.8; margin: 0;
 }
 
 .help-tip {
-  background: rgba(255, 215, 0, 0.05);
-  border: 1px solid rgba(255, 215, 0, 0.15);
-  border-radius: 6px;
-  padding: 10px 14px;
-  margin: 10px 0;
-  color: #c0c0d0;
-  font-size: 13px;
-  line-height: 1.7;
+  background: rgba(255,215,0,.05); border: 1px solid rgba(255,215,0,.15);
+  border-radius: 6px; padding: 10px 14px; margin: 10px 0;
+  color: #c0c0d0; font-size: 13px; line-height: 1.7;
 }
 
-.help-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px 0;
-}
+.help-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
 
 .help-table td {
-  padding: 8px 14px;
-  border-bottom: 1px solid #2a2a4a;
-  color: #a0a0b8;
-  font-size: 14px;
+  padding: 8px 14px; border-bottom: 1px solid #2a2a4a;
+  color: #a0a0b8; font-size: 14px;
 }
 
 .help-table td:first-child {
-  color: #ffd700;
-  font-weight: 600;
-  white-space: nowrap;
-  width: 120px;
+  color: #ffd700; font-weight: 600; white-space: nowrap; width: 120px;
 }
 
 .faq-item {
-  background: #141428;
-  border: 1px solid #2a2a4a;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 10px;
+  background: #141428; border: 1px solid #2a2a4a;
+  border-radius: 6px; padding: 12px 16px; margin-bottom: 10px;
 }
 
-.faq-item h4 {
-  color: #e0e0e0;
-  margin-bottom: 6px;
-}
-
-.faq-item p {
-  color: #808090;
-  font-size: 13px;
-}
+.faq-item h4 { color: #e0e0e0; margin-bottom: 6px; }
+.faq-item p { color: #808090; font-size: 13px; }
 
 @media (max-width: 768px) {
   .help-page { padding: 0 4px; }
