@@ -9,6 +9,9 @@
       </span>
       <el-switch v-model="debugEnabled" size="small" active-text="调试" style="--el-switch-on-color:#e6a23c" />
       <el-button v-if="debugLogs.length" size="small" type="warning" plain @click="downloadDebug">下载响应 ({{ debugLogs.length }})</el-button>
+      <el-button size="small" text style="margin-left:auto" @click="$router.push('/help#fflogs-query')">
+        <el-icon><QuestionFilled /></el-icon>帮助
+      </el-button>
     </div>
 
     <!-- ========== 功能 Tab ========== -->
@@ -1397,6 +1400,13 @@ const activeTool = ref('progress')
   font-size: 13px;
   color: #a0a0b8;
   text-align: center;
+}
+
+.debug-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .rate-badge {
