@@ -164,7 +164,7 @@ export function useTeammateQuery(auth) {
   async function tmCollectClearsWithLimit(subject, limit) {
     let character = null
     if (subject.id) {
-      const data = await graphQL(ENCOUNTER_RANKINGS_QUERY, { characterID: subject.id, encounterID: tm.encounterId })
+      const data = await graphQL(ENCOUNTER_RANKINGS_QUERY, { characterID: subject.id, encounterID: Number(tm.encounterId) })
       character = data.characterData.character
       if (!character) throw new Error(`没有找到角色：${tmLabel(subject)}`)
       if (character.id && !tm.characterId) tm.characterId = character.id
@@ -184,7 +184,7 @@ export function useTeammateQuery(auth) {
     // 名字查询翻页
     const raw = []; let page = 1
     while (true) {
-      const vars = { characterName: subject.name, serverSlug: subject.serverSlug, serverRegion: subject.serverRegion || tm.serverRegion, encounterID: tm.encounterId, limit, page }
+      const vars = { characterName: subject.name, serverSlug: subject.serverSlug, serverRegion: subject.serverRegion || tm.serverRegion, encounterID: Number(tm.encounterId), limit, page }
       const data = await graphQL(CLEAR_REPORTS_BY_NAME_QUERY, vars)
       character = data.characterData.character
       if (!character) throw new Error(`没有找到角色：${tmLabel(subject)}`)
@@ -285,7 +285,7 @@ export function useTeammateQuery(auth) {
       tm.targetJobStats = Object.values(jobMap).sort((a, b) => b.count - a.count)
       tmLog(`目标初通：${tm.targetName} ${firstClear.realStartISO} ${firstClear.reportCode}#${firstClear.fightID}`)
       tmLog('查询初通队友')
-      const reportData = await graphQL(FIRST_CLEAR_DETAIL_QUERY, { code: firstClear.reportCode, encounterID: tm.encounterId, fightIDs: [firstClear.fightID] })
+      const reportData = await graphQL(FIRST_CLEAR_DETAIL_QUERY, { code: firstClear.reportCode, encounterID: Number(tm.encounterId), fightIDs: [firstClear.fightID] })
       const report = reportData.reportData.report
       if (!report) throw new Error(`没有找到报告 ${firstClear.reportCode}`)
       const { teammates } = extractPlayersFromFirstClear(report, firstClear.fightID, targetResult.character)

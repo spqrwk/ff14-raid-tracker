@@ -825,7 +825,7 @@ async function runProgress() {
     progLog('令牌已就绪')
     await refreshRateLimit()
     progLog(`API额度：${rateRemaining.value}/${rateLimit.value?.limitPerHour}`)
-    const variablesBase = { characterName: prog.characterName, serverSlug: prog.serverSlug, serverRegion: prog.serverRegion, encounterID: prog.encounterId, limit: prog.limit }
+    const variablesBase = { characterName: prog.characterName, serverSlug: prog.serverSlug, serverRegion: prog.serverRegion, encounterID: Number(prog.encounterId), limit: prog.limit }
     let page = 1, emptyPages = 0
     const rawFights = []
     prog.progressPct = 10; prog.progressMsg = '正在分页查询报告...'
@@ -1046,7 +1046,7 @@ async function tmCollectClearsWithLimit(subject, limit) {
     const useId = !!subject.id
     // 有 ID 时用 encounterRankings（一次返回全部过本，不分页不翻空报告）
     if (useId) {
-      const data = await graphQL(ENCOUNTER_RANKINGS_QUERY, { characterID: subject.id, encounterID: tm.encounterId })
+      const data = await graphQL(ENCOUNTER_RANKINGS_QUERY, { characterID: subject.id, encounterID: Number(tm.encounterId) })
       character = data.characterData.character
       if (!character) throw new Error(`没有找到角色：${tmLabel(subject)}`)
       if (character.id && !tm.characterId) tm.characterId = character.id
@@ -1072,7 +1072,7 @@ async function tmCollectClearsWithLimit(subject, limit) {
     }
     // 名字查询：翻页 recentReports
     const query = CLEAR_REPORTS_BY_NAME_QUERY
-    const vars = { characterName: subject.name, serverSlug: subject.serverSlug, serverRegion: subject.serverRegion || tm.serverRegion, encounterID: tm.encounterId, limit, page }
+    const vars = { characterName: subject.name, serverSlug: subject.serverSlug, serverRegion: subject.serverRegion || tm.serverRegion, encounterID: Number(tm.encounterId), limit, page }
     const data = await graphQL(query, vars)
     character = data.characterData.character
     if (!character) throw new Error(`没有找到角色：${tmLabel(subject)}`)
@@ -1235,7 +1235,7 @@ async function runTeammate() {
     tm.targetJobStats = Object.values(jobMap).sort((a, b) => b.count - a.count)
     tmLog(`目标初通：${tm.targetName} ${firstClear.realStartISO} ${firstClear.reportCode}#${firstClear.fightID}`)
     tmLog('查询初通队友')
-    const reportData = await graphQL(FIRST_CLEAR_DETAIL_QUERY, { code: firstClear.reportCode, encounterID: tm.encounterId, fightIDs: [firstClear.fightID] })
+    const reportData = await graphQL(FIRST_CLEAR_DETAIL_QUERY, { code: firstClear.reportCode, encounterID: Number(tm.encounterId), fightIDs: [firstClear.fightID] })
     const report = reportData.reportData.report
     if (!report) throw new Error(`没有找到报告 ${firstClear.reportCode}`)
     const { teammates } = extractPlayersFromFirstClear(report, firstClear.fightID, targetResult.character)

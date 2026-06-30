@@ -255,7 +255,7 @@ export function useProgressQuery(auth) {
       prog.progressPct = 5; prog.progressMsg = '令牌已就绪，查询额度...'
       progLog('令牌已就绪')
       await auth.refreshRateLimit()
-      const vbase = { characterName: prog.characterName, serverSlug: prog.serverSlug, serverRegion: prog.serverRegion, encounterID: prog.encounterId, limit: prog.limit }
+      const vbase = { characterName: prog.characterName, serverSlug: prog.serverSlug, serverRegion: prog.serverRegion, encounterID: Number(prog.encounterId), limit: prog.limit }
       let page = 1, emptyPages = 0; const rawFights = []
       prog.progressPct = 10; prog.progressMsg = '正在分页查询报告...'
       while (true) {
