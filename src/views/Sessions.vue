@@ -88,7 +88,7 @@
                   </template>
                 </el-table-column>
                 <el-table-column label="副本" width="80">
-                  <template #default="{ row: r }"><span class="duty-tag">{{ r.duty || '-' }}</span></template>
+                  <template #default="{ row: r }"><span class="duty-tag">{{ r.duty || '' }}</span></template>
                 </el-table-column>
                 <el-table-column prop="phase" label="阶段" width="70">
                   <template #default="{ row: r }"><span class="phase-text">{{ r.phase||'-' }}</span></template>
@@ -189,6 +189,29 @@ const startDate = computed(() => dateRange.value?.[0] || '2000-01-01')
 const endDate = computed(() => dateRange.value?.[1] || '2099-12-31')
 
 // --- 筛选后的记录 ---
+// 自动修复缺少 duty 的旧记录
+const teamStore = useTeamStore()
+function repairMissingDuties() {
+  const team = teamStore.currentTeam
+  if (!team?.duties?.length) return
+  let changed = false
+  for (const r of recordStore.records) {
+    if (!r.duty) {
+      // 如果队伍只有一个副本，直接用；否则尝试从同 pull 的其他记录推断
+      if (team.duties.length === 1) {
+        r.duty = team.duties[0]
+        changed = true
+      } else {
+        // 多副本：从同 pull 的其他记录推断
+        const samePull = recordStore.records.find(sr => sr.date === r.date && sr.pullNumber === r.pullNumber && sr.duty)
+        if (samePull) { r.duty = samePull.duty; changed = true }
+      }
+    }
+  }
+  if (changed) recordStore.persist()
+}
+repairMissingDuties()
+
 const filteredRecords = computed(() => {
   let records = recordStore.getRecordsByDateRange(startDate.value, endDate.value)
   if (filterPlayerId.value) {
