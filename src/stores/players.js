@@ -97,6 +97,9 @@ export const usePlayerStore = defineStore('players', () => {
     for (const [, info] of pullsToFix) {
       const remaining = recordStore.records.filter(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'mistake')
       if (remaining.length === 0) {
+        // 已有进度记录则不重复添加
+        const hasProgress = recordStore.records.some(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'progress')
+        if (hasProgress) continue
         const phase = info.records.find(r => r.phase)?.phase || ''
         recordStore.records.push({
           id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
