@@ -109,16 +109,19 @@ export const usePlayerStore = defineStore('players', () => {
       const tid = remaining[0]?.teamId || info.records[0]?.teamId || ''
 
       if (deletedHadFurthest && furthestPhase) {
-        // 删除的记录是最远阶段 → 补一条进度
+        // 已有进度记录 → 更新其备注
         const existingProgress = remaining.find(r => r.type === 'progress')
-        const prevInfo = existingProgress ? `，原进度 ${existingProgress.phase}` : ''
-        recordStore.records.push({
-          id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
-          type: 'progress', teamId: tid, duty,
-          date: info.date, pullNumber: info.pullNumber, phase: furthestPhase,
-          notes: `${playerName} ${furthestPhase}-${levelText} 已删除${prevInfo}`,
-          timestamp: new Date().toISOString()
-        })
+        if (existingProgress) {
+          existingProgress.notes = (existingProgress.notes ? existingProgress.notes + '；' : '') + `${playerName} ${furthestPhase}-${levelText} 已删除`
+        } else {
+          recordStore.records.push({
+            id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+            type: 'progress', teamId: tid, duty,
+            date: info.date, pullNumber: info.pullNumber, phase: furthestPhase,
+            notes: `${playerName} ${furthestPhase}-${levelText} 已删除`,
+            timestamp: new Date().toISOString()
+          })
+        }
       }
       if (!hasPullEnd) {
         // 没有结束标记 → 补一条
