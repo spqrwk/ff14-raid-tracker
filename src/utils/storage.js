@@ -41,25 +41,11 @@ export function saveCurrentTeamId(id) {
 
 // --- Players ---
 
-export function loadPlayers() {
-  const data = read(KEYS.PLAYERS, [])
-  return Array.isArray(data) ? data : []
-}
-
+export function loadPlayers() { return read(KEYS.PLAYERS, []) }
 export function savePlayers(players) { write(KEYS.PLAYERS, players) }
-
-export function loadRecords() {
-  const data = read(KEYS.RECORDS, [])
-  return Array.isArray(data) ? data : []
-}
-
+export function loadRecords() { return read(KEYS.RECORDS, []) }
 export function saveRecords(records) { write(KEYS.RECORDS, records) }
-
-export function loadTeams() {
-  const data = read(KEYS.TEAMS, [])
-  return Array.isArray(data) ? data : []
-}
-
+export function loadTeams() { return read(KEYS.TEAMS, []) }
 export function saveTeams(teams) { write(KEYS.TEAMS, teams) }
 
 // --- Phase Order ---
