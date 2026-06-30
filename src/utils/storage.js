@@ -31,10 +31,6 @@ function write(key, value) {
 
 // --- Teams ---
 
-export function saveTeams(teams) {
-  write(KEYS.TEAMS, teams)
-}
-
 export function loadCurrentTeamId() {
   return read(KEYS.CURRENT_TEAM_ID, null)
 }
@@ -51,10 +47,9 @@ export function loadPlayers() {
 }
 
 export function savePlayers(players) {
+  if (!Array.isArray(players)) return
   write(KEYS.PLAYERS, players)
 }
-
-// --- Records (Mistakes + Progress) ---
 
 export function loadRecords() {
   const data = read(KEYS.RECORDS, [])
@@ -62,14 +57,18 @@ export function loadRecords() {
 }
 
 export function saveRecords(records) {
+  if (!Array.isArray(records)) return
   write(KEYS.RECORDS, records)
 }
-
-// --- Teams ---
 
 export function loadTeams() {
   const data = read(KEYS.TEAMS, [])
   return Array.isArray(data) ? data : []
+}
+
+export function saveTeams(teams) {
+  if (!Array.isArray(teams)) return
+  write(KEYS.TEAMS, teams)
 }
 
 // --- Phase Order ---
