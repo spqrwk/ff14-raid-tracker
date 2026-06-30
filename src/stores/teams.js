@@ -98,9 +98,6 @@ export const useTeamStore = defineStore('teams', () => {
 
   const currentPhaseOrder = computed({
     get() {
-      if (currentDuty.value && DUTY_PHASES[currentDuty.value]) {
-        return [...DUTY_PHASES[currentDuty.value]]
-      }
       const t = currentTeam.value
       return t?.phaseOrder || DEFAULT_PHASE_ORDER
     },
