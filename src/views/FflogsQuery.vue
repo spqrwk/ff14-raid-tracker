@@ -337,13 +337,21 @@
             <el-button size="small" @click="resetTmFilters">重置</el-button>
           </div>
           <el-table :data="tm.filteredTeammates" stripe size="small" max-height="400" style="width:100%" @sort-change="tm.onSortChange">
-            <el-table-column prop="order" label="#" width="50" sortable="custom" />
-            <el-table-column prop="name" label="姓名" width="100" sortable="custom" />
-            <el-table-column prop="serverName" label="服务器" width="100" sortable="custom" />
-            <el-table-column label="职业" width="80">
-              <template #default="{ row }">{{ jobCN(row.job) }}</template>
+            <el-table-column prop="order" label="#" width="50" sortable="custom">
+              <template #default="{ row }">{{ row.order ?? '-' }}</template>
             </el-table-column>
-            <el-table-column label="此前" width="60" sortable="custom" prop="previousClearCount" />
+            <el-table-column label="姓名" width="100" sortable="custom" prop="name">
+              <template #default="{ row }">{{ row.name || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="服务器" width="100" sortable="custom" prop="serverName">
+              <template #default="{ row }">{{ row.serverName || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="职业" width="80">
+              <template #default="{ row }">{{ jobCN(row.job) || '-' }}</template>
+            </el-table-column>
+            <el-table-column label="此前" width="60" sortable="custom" prop="previousClearCount">
+              <template #default="{ row }">{{ row.previousClearCount ?? '-' }}</template>
+            </el-table-column>
             <el-table-column label="同场" width="60" sortable="custom" prop="sameClearWindowCount">
               <template #default="{ row }">
                 <el-tag :type="row.sameClearWindowCount > 0 ? 'success' : 'danger'" size="small" effect="dark">
@@ -351,14 +359,19 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="此后" width="60" sortable="custom" prop="afterTargetFirstClearCount" />
-            <el-table-column label="当前通关次数" width="80" sortable="custom" prop="currentClearCount" />
+            <el-table-column label="此后" width="60" sortable="custom" prop="afterTargetFirstClearCount">
+              <template #default="{ row }">{{ row.afterTargetFirstClearCount ?? '-' }}</template>
+            </el-table-column>
+            <el-table-column label="当前通关次数" width="80" sortable="custom" prop="currentClearCount">
+              <template #default="{ row }">{{ row.currentClearCount ?? '-' }}</template>
+            </el-table-column>
             <el-table-column label="首次通关" width="160">
               <template #default="{ row }">
                 <template v-if="row.firstClear">
                   <div>{{ row.firstClear.realStartISO }}</div>
                   <div style="color:#808090;font-size:11px">{{ row.firstClear.reportCode }}#{{ row.firstClear.fightID }}</div>
                 </template>
+                <template v-else>-</template>
               </template>
             </el-table-column>
             <el-table-column label="最近通关" width="160">
@@ -367,6 +380,7 @@
                   <div>{{ row.latestClear.realStartISO }}</div>
                   <div style="color:#808090;font-size:11px">{{ row.latestClear.reportCode }}#{{ row.latestClear.fightID }}</div>
                 </template>
+                <template v-else>-</template>
               </template>
             </el-table-column>
             <el-table-column label="备注" min-width="160" prop="error" />
@@ -1135,10 +1149,18 @@ function extractPlayersFromFirstClear(report, fightId, targetChar) {
   const players = []; const seen = new Set()
   for (const aid of fight.friendlyPlayers || []) {
     const actor = actors.get(aid)
-    if (!isRealPlayer(actor)) continue
-    const ranked = rankedMap.get(rankedKey(actor.name, actor.server))
+    if (!actor || actor.type !== 'Player' || actor.subType === 'LimitBreak') continue
+    // 即使 actor 数据不完整也保留（例如缺 server），缺失字段后续显示为 -
+    const ranked = actor.server ? rankedMap.get(rankedKey(actor.name, actor.server)) : null
     const rs = (ranked || {}).server || {}
-    const p = { actorID: aid, characterID: (ranked || {}).id || null, name: actor.name, job: actor.subType, serverName: rs.name || actor.server, serverSlug: rs.slug || actor.server }
+    const p = {
+      actorID: aid,
+      characterID: (ranked || {}).id || null,
+      name: actor.name || `未知(${aid})`,
+      job: actor.subType || '',
+      serverName: rs.name || actor.server || '',
+      serverSlug: rs.slug || actor.server || ''
+    }
     const key = tmIdentity(p)
     if (seen.has(key)) continue; seen.add(key); players.push(p)
   }
