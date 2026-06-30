@@ -308,6 +308,9 @@
                   到达 {{ rec.phase }}
                 </span>
                 <span v-if="rec.notes" class="rec-desc">{{ rec.notes }}</span>
+                <el-button type="primary" link size="small" class="rec-edit-btn" @click="openEditDialog(rec)">
+                  <el-icon><Edit /></el-icon>
+                </el-button>
               </template>
             </div>
           </div>
@@ -316,35 +319,46 @@
     </el-card>
 
     <!-- 修改记录弹窗 -->
-    <el-dialog v-model="editVisible" title="修改记录" width="420px" destroy-on-close>
+    <el-dialog v-model="editVisible" :title="editForm.type==='progress'?'修改进度':'修改记录'" width="420px" destroy-on-close>
       <el-form ref="editFormRef" :model="editForm" label-position="top" v-if="editForm.id">
-        <el-form-item label="队员">
-          <el-select v-model="editForm.playerId" filterable style="width:100%">
-            <el-option v-for="p in playerStore.teamPlayers" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </el-form-item>
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="阶段">
-              <el-select v-model="editForm.phase" filterable allow-create style="width:100%">
-                <el-option v-for="p in selectablePhases" :key="p" :label="p" :value="p" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="等级">
-              <el-select v-model="editForm.level" style="width:100%">
-                <el-option label="减员" value="death" />
-                <el-option label="团灭" value="wipe" />
-                <el-option label="狂暴" value="enrage" />
-                <el-option label="罪无可恕" value="unforgivable" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-form-item label="内容">
-          <el-input v-model="editForm.description" type="textarea" :rows="2" maxlength="200" />
-        </el-form-item>
+        <!-- 犯错记录 -->
+        <template v-if="editForm.type==='mistake'">
+          <el-form-item label="队员">
+            <el-select v-model="editForm.playerId" filterable style="width:100%">
+              <el-option v-for="p in playerStore.teamPlayers" :key="p.id" :label="p.name" :value="p.id"/>
+            </el-select>
+          </el-form-item>
+          <el-row :gutter="12">
+            <el-col :span="12">
+              <el-form-item label="阶段">
+                <el-select v-model="editForm.phase" filterable allow-create style="width:100%">
+                  <el-option v-for="p in selectablePhases" :key="p" :label="p" :value="p"/>
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="等级">
+                <el-select v-model="editForm.level" style="width:100%">
+                  <el-option label="减员" value="death"/><el-option label="团灭" value="wipe"/><el-option label="狂暴" value="enrage"/><el-option label="罪无可恕" value="unforgivable"/>
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="内容">
+            <el-input v-model="editForm.description" type="textarea" :rows="2" maxlength="200"/>
+          </el-form-item>
+        </template>
+        <!-- 进度记录 -->
+        <template v-else>
+          <el-form-item label="到达阶段">
+            <el-select v-model="editForm.phase" filterable allow-create style="width:100%">
+              <el-option v-for="p in selectablePhases" :key="p" :label="p" :value="p"/>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="备注">
+            <el-input v-model="editForm.notes" type="textarea" :rows="2" maxlength="200" placeholder="修改到达的进度阶段"/>
+          </el-form-item>
+        </template>
       </el-form>
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
@@ -356,7 +370,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePlayerStore, ROLES, ROLE_LABELS } from '../stores/players'
 import { useRecordStore } from '../stores/records'
 import { useTeamStore } from '../stores/teams'
@@ -561,12 +575,25 @@ function submitProgress() {
 }
 
 // --- 手动结束本把 ---
-function handleEndPull() {
-  const result = recordStore.endCurrentPull(today.value)
-  if (result) {
-    ElMessage.success(`第 ${result.pullNumber} 把已手动结束，下一把为第 ${currentPull.value} 把`)
-  } else {
-    ElMessage.info('当前把次没有记录，无需结束')
+async function handleEndPull() {
+  const pullNum = currentPull.value
+  const dayRecords = recordStore.getRecordsByDate(today.value).filter(r => r.pullNumber === pullNum && r.type !== 'pull_end')
+  const defaultPhase = dayRecords.length > 0 ? (dayRecords.find(r => r.phase)?.phase || '') : ''
+
+  try {
+    const { value: phase } = await ElMessageBox.prompt('请输入本把到达的阶段', '手动结束第 ' + pullNum + ' 把', {
+      confirmButtonText: '结束本把',
+      cancelButtonText: '取消',
+      inputValue: defaultPhase,
+      inputPlaceholder: 'P几（选填）'
+    })
+    const result = recordStore.endCurrentPull(today.value)
+    if (result && phase) {
+      recordStore.addProgress({ phase, notes: '手动结束', date: today.value, endPull: false })
+    }
+    ElMessage.success(`第 ${pullNum} 把已结束，下一把为第 ${currentPull.value} 把`)
+  } catch {
+    // 用户取消
   }
 }
 
@@ -580,31 +607,44 @@ function handleClearPull() {
 // --- 修改记录 ---
 const editVisible = ref(false)
 const editFormRef = ref(null)
-const editForm = reactive({ id: '', playerId: '', playerName: '', phase: '', level: '', description: '' })
+const editForm = reactive({ id: '', type: 'mistake', playerId: '', playerName: '', phase: '', level: '', description: '', notes: '' })
 
 function openEditDialog(rec) {
   editForm.id = rec.id
-  editForm.playerId = rec.playerId
-  editForm.playerName = rec.playerName
+  editForm.type = rec.type
   editForm.phase = rec.phase
-  editForm.level = rec.level
-  editForm.description = rec.description || ''
+  if (rec.type === 'mistake') {
+    editForm.playerId = rec.playerId || ''
+    editForm.playerName = rec.playerName || ''
+    editForm.level = rec.level || ''
+    editForm.description = rec.description || ''
+  } else {
+    editForm.notes = rec.notes || ''
+  }
   editVisible.value = true
 }
 
 function handleEditSave() {
-  if (!editForm.playerId || !editForm.phase || !editForm.level) {
-    ElMessage.warning('请填写完整信息')
-    return
+  if (editForm.type === 'mistake') {
+    if (!editForm.playerId || !editForm.phase || !editForm.level) {
+      ElMessage.warning('请填写完整信息')
+      return
+    }
+    const player = playerStore.teamPlayers.find(p => p.id === editForm.playerId)
+    recordStore.updateRecord(editForm.id, {
+      playerId: editForm.playerId,
+      playerName: player?.name || editForm.playerName,
+      phase: editForm.phase,
+      level: editForm.level,
+      description: editForm.description
+    })
+  } else {
+    if (!editForm.phase) { ElMessage.warning('请填写阶段'); return }
+    recordStore.updateRecord(editForm.id, {
+      phase: editForm.phase,
+      notes: editForm.notes
+    })
   }
-  const player = playerStore.teamPlayers.find(p => p.id === editForm.playerId)
-  recordStore.updateRecord(editForm.id, {
-    playerId: editForm.playerId,
-    playerName: player?.name || editForm.playerName,
-    phase: editForm.phase,
-    level: editForm.level,
-    description: editForm.description
-  })
   ElMessage.success('记录已修改')
   editVisible.value = false
 }
