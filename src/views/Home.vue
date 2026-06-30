@@ -5,22 +5,6 @@
       <span>开荒面板</span><router-link to="/help#record" class="help-link">📖</router-link>
       <div class="team-switcher">
         <el-select
-          v-model="teamStore.currentTeamId"
-          placeholder="选择队伍"
-          style="width: 220px"
-          @change="onTeamSwitch"
-        >
-          <el-option
-            v-for="t in teamStore.teams"
-            :key="t.id"
-            :label="t.duties?.length ? `${t.name} · ${t.duties.join(' ')}` : t.name"
-            :value="t.id"
-          />
-        </el-select>
-        <el-tag v-if="currentTeam" type="success" size="small" effect="dark">
-          {{ currentTeam.name }}
-        </el-tag>
-        <el-select
           v-if="currentTeam?.duties?.length"
           v-model="currentDuty"
           placeholder="当前副本"
@@ -444,10 +428,6 @@ watch(currentTeam, t => {
 const selectablePhases = computed(() =>
   recordStore.phaseOrder.filter(p => p !== '已完成')
 )
-
-function onTeamSwitch() {
-  mistakeForm.playerIds = []
-}
 
 // 角色颜色
 const ROLE_COLORS = {
