@@ -120,12 +120,21 @@ export const usePlayerStore = defineStore('players', () => {
           timestamp: new Date().toISOString()
         })
       } else if (!hasPullEnd && hasMistake) {
-        // 还有犯错但没结束标记 → 补结束标记
-        const duty = remaining.find(r => r.duty)?.duty || ''
+        // 还有犯错但没结束标记 → 补进度 + 结束
+        const phase = [...info.records, ...remaining].map(r => r.phase).filter(Boolean).pop() || ''
+        const duty = remaining.find(r => r.duty)?.duty || info.records.find(r => r.duty)?.duty || ''
+        const tid = remaining[0]?.teamId || info.records[0]?.teamId || ''
         recordStore.records.push({
           id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
-          type: 'pull_end', teamId: remaining[0]?.teamId || '',
-          duty, date: info.date, pullNumber: info.pullNumber, phase: '',
+          type: 'progress', teamId: tid, duty,
+          date: info.date, pullNumber: info.pullNumber, phase,
+          notes: `${playerName} 记录已删除`,
+          timestamp: new Date().toISOString()
+        })
+        recordStore.records.push({
+          id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+          type: 'pull_end', teamId: tid, duty,
+          date: info.date, pullNumber: info.pullNumber, phase: '',
           timestamp: new Date().toISOString()
         })
       }
