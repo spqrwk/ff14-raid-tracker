@@ -110,11 +110,13 @@ export const usePlayerStore = defineStore('players', () => {
 
       if (deletedHadFurthest && furthestPhase) {
         // 删除的记录是最远阶段 → 补一条进度
+        const existingProgress = remaining.find(r => r.type === 'progress')
+        const prevInfo = existingProgress ? `，原进度 ${existingProgress.phase}` : ''
         recordStore.records.push({
           id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
           type: 'progress', teamId: tid, duty,
           date: info.date, pullNumber: info.pullNumber, phase: furthestPhase,
-          notes: `${playerName} ${furthestPhase}-${levelText} 已删除`,
+          notes: `${playerName} ${furthestPhase}-${levelText} 已删除${prevInfo}`,
           timestamp: new Date().toISOString()
         })
       }
