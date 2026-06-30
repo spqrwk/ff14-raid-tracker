@@ -100,13 +100,16 @@ export const usePlayerStore = defineStore('players', () => {
         // 已有进度记录则不重复添加
         const hasProgress = recordStore.records.some(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'progress')
         if (hasProgress) continue
-        const phase = info.records.find(r => r.phase)?.phase || ''
+        const firstRec = info.records[0]
+        const phase = firstRec?.phase || ''
+        const levelMap = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }
+        const levelText = levelMap[firstRec?.level] || firstRec?.level || ''
         recordStore.records.push({
           id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
           type: 'progress', teamId: recordStore.records[0]?.teamId || '',
           duty: info.records.find(r => r.duty)?.duty || '',
           date: info.date, pullNumber: info.pullNumber, phase,
-          notes: `${playerName} 被删除，仅保留进度`,
+          notes: `${playerName} ${phase}-${levelText} 已删除`,
           timestamp: new Date().toISOString()
         })
       }
