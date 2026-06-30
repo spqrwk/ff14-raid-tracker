@@ -89,7 +89,7 @@
                 <template v-else>未配置</template>
               </span>
             </div>
-            <div class="version-text">v1.2.0</div>
+            <div class="version-text">v1.2.1</div>
           </div>
         </el-aside>
 
@@ -214,8 +214,11 @@ function dismissWelcome() {
 }
 
 // 更新日志
-const CURRENT_VERSION = '1.2.0'
+const CURRENT_VERSION = '1.2.1'
 const CHANGELOG = {
+  '1.2.1': [
+    '数据统计 - 队员统计移除按日期划分的列'
+  ],
   '1.2.0': [
     '删除队员自动清理关联记录并补进度+结束标记，备注含阶段等级',
     '记录进度默认结束本把，移除额外勾选',

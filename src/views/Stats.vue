@@ -74,21 +74,6 @@
                 </template>
               </el-table-column>
 
-              <el-table-column
-                v-for="date in statDates"
-                :key="date"
-                :label="formatShortDate(date)"
-                width="80"
-                align="center"
-              >
-                <template #default="{ row }">
-                  <span
-                    class="stat-cell"
-                    :class="{ 'has-error': row.byDate[date] > 0 }"
-                  >{{ row.byDate[date] || 0 }}</span>
-                </template>
-              </el-table-column>
-
               <el-table-column prop="total" label="合计" width="80" align="center" fixed="right">
                 <template #default="{ row }">
                   <el-tag type="danger" size="small" effect="dark">{{ row.total }}</el-tag>
@@ -344,10 +329,6 @@ const playerStats = computed(() => {
   return stats
 })
 
-const statDates = computed(() => {
-  return recordStore.getDateRangeForStats(startDate.value, endDate.value)
-})
-
 function getSummaries({ columns, data }) {
   const sums = []
   columns.forEach((col, index) => {
@@ -364,7 +345,7 @@ function getSummaries({ columns, data }) {
       sums[index] = ''
       return
     }
-    // 按 label 匹配：日期列、等级列
+    // 按 label 匹配：等级列
     const label = col.label || ''
     if (label === '减员') {
       sums[index] = data.reduce((acc, row) => acc + row.byLevel.death, 0)
@@ -374,12 +355,6 @@ function getSummaries({ columns, data }) {
       sums[index] = data.reduce((acc, row) => acc + row.byLevel.enrage, 0)
     } else if (label === '罪无可恕') {
       sums[index] = data.reduce((acc, row) => acc + (row.byLevel.unforgivable || 0), 0)
-    } else if (label && label.includes('-')) {
-      // MM-DD 格式的日期列
-      const date = statDates.value.find(d => formatShortDate(d) === label)
-      sums[index] = date
-        ? data.reduce((acc, row) => acc + (row.byDate[date] || 0), 0)
-        : ''
     } else {
       sums[index] = ''
     }
@@ -846,12 +821,6 @@ const teamBarOption = computed(() => {
     ]
   }
 })
-
-// --- 辅助 ---
-function formatShortDate(dateStr) {
-  if (!dateStr) return ''
-  return dateStr.slice(5) // MM-DD
-}
 </script>
 
 <style scoped>
