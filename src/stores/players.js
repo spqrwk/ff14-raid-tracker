@@ -129,9 +129,6 @@ export const usePlayerStore = defineStore('players', () => {
           timestamp: new Date().toISOString()
         })
       }
-          timestamp: new Date().toISOString()
-        })
-      }
     }
     recordStore.persist()
     persist()
