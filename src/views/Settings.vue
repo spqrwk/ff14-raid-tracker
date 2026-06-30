@@ -243,7 +243,7 @@ function handleExport() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `ff14-raid-tracker-backup-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `ff14-raid-tracker-backup-${new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.json`
   a.click()
   URL.revokeObjectURL(url)
   ElMessage.success('数据已导出')
@@ -261,7 +261,7 @@ function handleExportPlayersOnly() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `ff14-raid-tracker-players-${new Date().toISOString().split('T')[0]}.json`
+  a.download = `ff14-raid-tracker-players-${new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.json`
   a.click()
   URL.revokeObjectURL(url)
   ElMessage.success(`${playerStore.players.length} 名队员已导出`)

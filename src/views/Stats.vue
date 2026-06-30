@@ -301,9 +301,10 @@ function onPlayerPieClick(params) {
 }
 
 // --- 筛选条件 ---
+function cstDateStr(ts) { return new Date(ts).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }
 const dateRange = ref([
-  new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0],
-  new Date().toISOString().split('T')[0]
+  cstDateStr(Date.now() - 14 * 86400000),
+  cstDateStr(Date.now())
 ])
 const dutyOptions = computed(() => {
   const teamStore = useTeamStore()

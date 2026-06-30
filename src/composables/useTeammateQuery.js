@@ -32,7 +32,7 @@ query($code: String!, $encounterID: Int!, $fightIDs: [Int]) {
 }`
 
 function formatTime(ms) {
-  return new Date(ms).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(ms).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 export function useTeammateQuery(auth) {
@@ -52,7 +52,7 @@ export function useTeammateQuery(auth) {
     log: ''
   })
 
-  function tmLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { hour12: false }); tm.log += `[${t}] ${msg}\n` }
+  function tmLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }); tm.log += `[${t}] ${msg}\n` }
   function tmClearLog() { tm.log = '' }
 
   let abortCtrl = null

@@ -142,7 +142,7 @@ export const useRecordStore = defineStore('records', () => {
     if (!entries || entries.length === 0) return []
     const teamStore = useTeamStore()
     const tid = teamStore.currentTeamId
-    const recordDate = entries[0].date || new Date().toISOString().split('T')[0]
+    const recordDate = entries[0].date || new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
     const pullNumber = getCurrentPullNumber(recordDate)
     const level = entries[0].level
 
@@ -185,7 +185,7 @@ export const useRecordStore = defineStore('records', () => {
   function addMistake({ playerId, playerName, phase, description, level, date, duty }) {
     if (!playerId || !phase || !level) throw new Error('请填写完整的犯错信息')
     const teamStore = useTeamStore(); const tid = teamStore.currentTeamId
-    const recordDate = date || new Date().toISOString().split('T')[0]
+    const recordDate = date || new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
     const pullNumber = getCurrentPullNumber(recordDate)
     const record = {
       id: generateId(), type: 'mistake', teamId: tid, duty: duty || '',
@@ -200,7 +200,7 @@ export const useRecordStore = defineStore('records', () => {
     if (!phase) throw new Error('请填写到达的阶段')
     const teamStore = useTeamStore()
     const tid = teamStore.currentTeamId
-    const recordDate = date || new Date().toISOString().split('T')[0]
+    const recordDate = date || new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
     const pullNumber = getCurrentPullNumber(recordDate)
     // 未指定副本时从同把记录推断
     if (!duty) {
@@ -252,7 +252,7 @@ export const useRecordStore = defineStore('records', () => {
   function markPullCleared(date) {
     const teamStore = useTeamStore()
     const tid = teamStore.currentTeamId
-    const recordDate = date || new Date().toISOString().split('T')[0]
+    const recordDate = date || new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
     const pullNumber = getCurrentPullNumber(recordDate)
     const duty = records.value.find(r => r.date === recordDate && r.pullNumber === pullNumber && r.duty)?.duty || ''
 
@@ -274,7 +274,7 @@ export const useRecordStore = defineStore('records', () => {
   function endCurrentPull(date) {
     const teamStore = useTeamStore()
     const tid = teamStore.currentTeamId
-    const recordDate = date || new Date().toISOString().split('T')[0]
+    const recordDate = date || new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
     const pullNumber = getCurrentPullNumber(recordDate)
 
     const todayRecords = records.value.filter(

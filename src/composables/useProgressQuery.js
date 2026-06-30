@@ -27,7 +27,7 @@ const MASTER_DATA_QUERY = `
 query($code: String!) { reportData { report(code: $code) { masterData { actors { id name type subType gameID } } } } }`
 
 function formatTime(ms) {
-  return new Date(ms).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(ms).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 function fmtPct(v) { return v == null || isNaN(v) ? '-' : `${Number(v).toFixed(2)}%` }
 function formatDuration(ms) {
@@ -36,13 +36,18 @@ function formatDuration(ms) {
   return `${m}分${String(s).padStart(2, '0')}秒`
 }
 
+function cstYesterdayMidnight() {
+  const cst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }))
+  return Date.UTC(cst.getFullYear(), cst.getMonth(), cst.getDate() - 1) - 8 * 3600 * 1000
+}
+
 export function useProgressQuery(auth) {
   const yesterday = new Date(Date.now() - 86400000)
   yesterday.setHours(0, 0, 0, 0)
 
   const prog = reactive({
     playerAtServer: '洛辰辰@海猫茶屋', characterName: '洛辰辰', serverSlug: '海猫茶屋', serverRegion: 'CN',
-    encounterId: 1085, limit: 20, afterMs: yesterday.getTime(), afterDate: yesterday,
+    encounterId: 1085, limit: 20, afterMs: cstYesterdayMidnight(), afterDate: yesterday,
     dedupeMs: 5000, healthWindow: 60000, healthMode: 'best',
     running: false, hasData: false, progressPct: 0, progressMsg: '',
     fights: [], filteredFights: [], pagedFights: [],
@@ -54,7 +59,7 @@ export function useProgressQuery(auth) {
     log: ''
   })
 
-  function progLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { hour12: false }); prog.log += `[${t}] ${msg}\n` }
+  function progLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }); prog.log += `[${t}] ${msg}\n` }
   function progClearLog() { prog.log = '' }
 
   let abortCtrl = null

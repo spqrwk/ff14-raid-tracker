@@ -566,7 +566,7 @@ function downloadDebug() {
   const blob = new Blob([JSON.stringify(debugLogs.value, null, 2)], { type: 'application/json' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
-  a.download = `fflogs_debug_${new Date().toISOString().slice(0, 10)}.json`
+  a.download = `fflogs_debug_${new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')}.json`
   a.click()
   ElMessage.success(`已保存 ${debugLogs.value.length} 条请求记录`)
 }
@@ -580,7 +580,7 @@ async function refreshRateLimit() {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
 function formatTime(ms) {
-  return new Date(ms).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(ms).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function formatDuration(ms) {
@@ -596,11 +596,15 @@ function healthSourceLabel(s) {
   return map[s] || s || ''
 }
 // ====== 进度统计 ======
+function cstYesterdayMidnight() {
+  const cst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Shanghai' }))
+  return Date.UTC(cst.getFullYear(), cst.getMonth(), cst.getDate() - 1) - 8 * 3600 * 1000
+}
 const yesterday = new Date(Date.now() - 86400000)
 yesterday.setHours(0, 0, 0, 0)
 const prog = reactive({
   playerAtServer: '洛辰辰@海猫茶屋', characterName: '洛辰辰', serverSlug: '海猫茶屋', serverRegion: 'CN',
-  encounterId: 1085, limit: 20, afterMs: yesterday.getTime(), afterDate: yesterday, dedupeMs: 5000, healthWindow: 60000,
+  encounterId: 1085, limit: 20, afterMs: cstYesterdayMidnight(), afterDate: yesterday, dedupeMs: 5000, healthWindow: 60000,
   healthMode: 'best',
   running: false, hasData: false,
   progressPct: 0, progressMsg: '',
@@ -622,7 +626,7 @@ function splitPlayerAtServer(input) {
 function splitProgPlayer() { const s = splitPlayerAtServer(prog.playerAtServer); prog.characterName = s.characterName; prog.serverSlug = s.serverSlug }
 function splitTmPlayer() { const s = splitPlayerAtServer(tm.playerAtServer); tm.characterName = s.characterName; tm.serverSlug = s.serverSlug }
 
-function progLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { hour12: false }); prog.log += `[${t}] ${msg}\n` }
+function progLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }); prog.log += `[${t}] ${msg}\n` }
 function progClearLog() { prog.log = '' }
 
 function buildPhaseMap(report, encounterId) {
@@ -988,7 +992,7 @@ const tm = reactive({
   log: ''
 })
 
-function tmLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { hour12: false }); tm.log += `[${t}] ${msg}\n` }
+function tmLog(msg) { const t = new Date().toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }); tm.log += `[${t}] ${msg}\n` }
 function tmClearLog() { tm.log = '' }
 
 function tmSubject() {

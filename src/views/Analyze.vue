@@ -199,7 +199,7 @@ async function fetchFights() {
 }
 
 async function submitAll() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-')
   let mistakeTotal = 0, progressTotal = 0
 
   // 先手动结束当前 pull（如果存在），确保从新 pull 开始

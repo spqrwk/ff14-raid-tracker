@@ -433,7 +433,7 @@ const ROLE_COLORS = {
 function roleColor(role) { return ROLE_COLORS[role] || '#666' }
 
 // --- 当前日期 ---
-const today = computed(() => new Date().toISOString().split('T')[0])
+const today = computed(() => new Date().toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'))
 
 // --- 当前 pull 号 ---
 const currentPull = computed(() => recordStore.getCurrentPullNumber(today.value))

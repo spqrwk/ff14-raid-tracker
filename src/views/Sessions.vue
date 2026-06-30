@@ -178,9 +178,10 @@ const recordStore = useRecordStore()
 const playerStore = usePlayerStore()
 
 const activeTab = ref('date')
+function cstDateStr(ts) { return new Date(ts).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-') }
 const dateRange = ref([
-  new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
-  new Date().toISOString().split('T')[0]
+  cstDateStr(Date.now() - 7 * 86400000),
+  cstDateStr(Date.now())
 ])
 const filterPlayerId = ref('')
 const filterType = ref('all')
@@ -341,7 +342,7 @@ function levelTagType(l) {
 }
 function formatTime(iso) {
   if (!iso) return '-'
-  return new Date(iso).toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit' })
+  return new Date(iso).toLocaleTimeString('zh-CN', { timeZone: 'Asia/Shanghai', hour:'2-digit', minute:'2-digit' })
 }
 </script>
 
