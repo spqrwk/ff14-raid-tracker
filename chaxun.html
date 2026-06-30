@@ -1,0 +1,1844 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FF Logs 进度统计</title>
+  <style>
+    :root {
+      --bg: #eef2f6;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --ink: #18202a;
+      --muted: #647181;
+      --line: #d8e0ea;
+      --accent: #0f766e;
+      --accent-strong: #0b5f59;
+      --blue: #2f6eb8;
+      --amber: #b7791f;
+      --red: #bd3b36;
+      --green: #15803d;
+      --shadow: 0 8px 24px rgba(24, 32, 42, 0.07);
+      --shadow-small: 0 1px 2px rgba(24, 32, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(180deg, #f7f9fc 0, var(--bg) 360px, #edf1f5 100%);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .status {
+      min-height: 22px;
+      color: var(--muted);
+      text-align: right;
+      font-size: 13px;
+      overflow-wrap: anywhere;
+      padding: 6px 10px;
+      border: 1px solid #e1e7ef;
+      border-radius: 999px;
+      background: #f8fafc;
+    }
+
+    main {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px 20px 32px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+
+    .panel-title {
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      background: linear-gradient(180deg, #ffffff, #fbfcfe);
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid #c8d2dd;
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--ink);
+      font: inherit;
+      outline: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22, 124, 107, 0.12);
+    }
+
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+    .span-4 { grid-column: span 4; }
+    .span-6 { grid-column: span 6; }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      min-height: 38px;
+      padding: 8px 12px;
+      border: 1px solid #b8c2cf;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      cursor: pointer;
+    }
+
+    button:hover:not(:disabled) {
+      border-color: #8793a1;
+      background: #f9fafb;
+    }
+
+    button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(15, 118, 110, 0.18);
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-strong);
+    }
+
+    button.danger {
+      border-color: #e0a8a6;
+      color: var(--red);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 13px;
+      min-height: 78px;
+      box-shadow: var(--shadow-small);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 24px;
+      font-weight: 750;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .metric-sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 4px;
+      overflow-wrap: anywhere;
+    }
+
+    .metric.warning {
+      border-color: #e6c66f;
+      background: #fffaf0;
+    }
+
+    .metric.danger {
+      border-color: #e5a0a0;
+      background: #fff5f5;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .chart-box {
+      min-height: 320px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 280px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 560px;
+      border-top: 1px solid var(--line);
+    }
+
+    .table-controls {
+      display: grid;
+      grid-template-columns: 2fr repeat(4, minmax(130px, 1fr)) auto;
+      gap: 10px;
+      align-items: end;
+      padding: 12px 14px;
+      background: #fbfcfe;
+      border-bottom: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1200px;
+      background: #fff;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e5e9ef;
+      text-align: left;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #f3f6fa;
+      color: #3e4650;
+      font-size: 12px;
+      z-index: 1;
+    }
+
+    .sort-btn {
+      min-height: 0;
+      padding: 0;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sort-btn:hover {
+      color: var(--accent);
+      background: transparent;
+    }
+
+    .sort-indicator {
+      color: var(--accent);
+      font-size: 11px;
+      min-width: 10px;
+      display: inline-block;
+    }
+
+    td.wrap {
+      white-space: normal;
+      min-width: 180px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      border: 1px solid #ccd4dd;
+      background: #f9fafb;
+    }
+
+    .pill.green {
+      color: var(--green);
+      border-color: #9fd2b3;
+      background: #eef9f2;
+    }
+
+    .pill.red {
+      color: var(--red);
+      border-color: #e9b5b3;
+      background: #fff2f1;
+    }
+
+    .pill.blue {
+      color: var(--blue);
+      border-color: #abc1e6;
+      background: #f1f6ff;
+    }
+
+    .log {
+      max-height: 150px;
+      overflow: auto;
+      padding: 10px 12px;
+      margin: 0;
+      background: #101418;
+      color: #d9e2ec;
+      border-radius: 6px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .form-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+      }
+
+      .span-2, .span-3, .span-4 {
+        grid-column: span 3;
+      }
+
+      .span-6 {
+        grid-column: span 6;
+      }
+
+      .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .chart-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .table-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 640px) {
+      .header-inner {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .status {
+        text-align: left;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .span-2, .span-3, .span-4, .span-6 {
+        grid-column: span 1;
+      }
+
+      .cards {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .actions {
+        width: 100%;
+      }
+
+      button {
+        flex: 1;
+      }
+
+      .table-controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <h1>FF Logs 进度统计</h1>
+      <div class="status" id="status">就绪</div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="panel-title">
+        <span>查询参数</span>
+        <div class="actions">
+          <button id="saveCredentialsBtn" type="button">保存凭证</button>
+          <button id="refreshRateBtn" type="button">刷新额度</button>
+          <button id="clearCredentialsBtn" class="danger" type="button">清除凭证</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-grid">
+          <div class="span-3">
+            <label for="clientId">Client ID</label>
+            <input id="clientId" autocomplete="off">
+          </div>
+          <div class="span-3">
+            <label for="clientSecret">Client Secret</label>
+            <input id="clientSecret" type="password" autocomplete="off">
+          </div>
+          <div class="span-6">
+            <label for="manualToken">访问令牌</label>
+            <input id="manualToken" type="password" autocomplete="off">
+            <div class="hint">凭证只保存在当前浏览器的 localStorage；工作区文件不写入密钥。</div>
+          </div>
+          <div class="span-3">
+            <label for="characterName">玩家名</label>
+            <input id="characterName" value="青瓜">
+          </div>
+          <div class="span-3">
+            <label for="serverSlug">服务器</label>
+            <input id="serverSlug" value="拉诺西亚">
+          </div>
+          <div class="span-2">
+            <label for="serverRegion">区域</label>
+            <input id="serverRegion" value="CN">
+          </div>
+          <div class="span-2">
+            <label for="encounterId">Boss ID</label>
+            <input id="encounterId" type="number" value="1085">
+          </div>
+          <div class="span-2">
+            <label for="limit">分页数量</label>
+            <input id="limit" type="number" min="1" max="100" value="20">
+          </div>
+          <div class="span-3">
+            <label for="afterMs">起始时间戳</label>
+            <input id="afterMs" type="number" value="1780394400000">
+          </div>
+          <div class="span-2">
+            <label for="dedupeMs">去重窗口(ms)</label>
+            <input id="dedupeMs" type="number" value="5000">
+          </div>
+          <div class="span-2">
+            <label for="emptyPages">空页停止</label>
+            <input id="emptyPages" type="number" value="3">
+          </div>
+          <div class="span-2">
+            <label for="healthWindow">血量窗口(ms)</label>
+            <input id="healthWindow" type="number" value="60000">
+          </div>
+          <div class="span-3">
+            <label for="healthMode">血量查询</label>
+            <select id="healthMode">
+              <option value="best" selected>最低进度一场</option>
+              <option value="none">不查询血量</option>
+              <option value="all">全部战斗</option>
+            </select>
+          </div>
+          <div class="span-6">
+            <label>&nbsp;</label>
+            <div class="actions">
+              <button id="runBtn" class="primary" type="button">开始查询</button>
+              <button id="stopBtn" type="button" disabled>停止</button>
+              <button id="downloadJsonBtn" type="button" disabled>下载 JSON</button>
+              <button id="downloadCsvBtn" type="button" disabled>下载 CSV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cards" id="cards">
+      <div class="metric">
+        <div class="metric-label">战斗次数</div>
+        <div class="metric-value" id="battleCount">0</div>
+        <div class="metric-sub">去重后</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">通关次数</div>
+        <div class="metric-value" id="killCount">0</div>
+        <div class="metric-sub">kill=true</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">P1通过</div>
+        <div class="metric-value" id="p1Count">0</div>
+        <div class="metric-sub">进入 P2 或更后</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">P2通过</div>
+        <div class="metric-value" id="p2Count">0</div>
+        <div class="metric-sub">进入 P3 或更后</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">最低进度</div>
+        <div class="metric-value" id="bestPercent">-</div>
+        <div class="metric-sub" id="bestMeta">-</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">最低进度血量</div>
+        <div class="metric-value" id="bestHp">-</div>
+        <div class="metric-sub" id="bestHpDetail">-</div>
+      </div>
+      <div class="metric" id="rateLimitCard">
+        <div class="metric-label">API额度</div>
+        <div class="metric-value" id="rateLimitValue">-</div>
+        <div class="metric-sub" id="rateLimitMeta">未查询</div>
+      </div>
+    </section>
+
+    <section class="chart-grid">
+      <div class="panel chart-box">
+        <div class="panel-title">卡点分布</div>
+        <div class="panel-body">
+          <canvas id="stageChart"></canvas>
+        </div>
+      </div>
+      <div class="panel chart-box">
+        <div class="panel-title">阶段通过次数</div>
+        <div class="panel-body">
+          <canvas id="passChart"></canvas>
+        </div>
+      </div>
+      <div class="panel chart-box" style="grid-column: 1 / -1;">
+        <div class="panel-title">进度趋势</div>
+        <div class="panel-body">
+          <canvas id="progressChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">
+        <span>战斗明细</span>
+        <span id="tableMeta">0 行</span>
+      </div>
+      <div class="table-controls">
+        <div>
+          <label for="tableSearch">搜索</label>
+          <input id="tableSearch" placeholder="报告ID、战斗ID、阶段、血量明细">
+        </div>
+        <div>
+          <label for="statusFilter">状态</label>
+          <select id="statusFilter">
+            <option value="all">全部</option>
+            <option value="kill">仅通关</option>
+            <option value="wipe">仅未通关</option>
+            <option value="best">最低进度</option>
+          </select>
+        </div>
+        <div>
+          <label for="stageFilter">卡点阶段</label>
+          <select id="stageFilter">
+            <option value="all">全部阶段</option>
+          </select>
+        </div>
+        <div>
+          <label for="sortField">排序字段</label>
+          <select id="sortField">
+            <option value="attemptNo">序号</option>
+            <option value="realStartTime">现实开始时间</option>
+            <option value="reportCode">报告ID</option>
+            <option value="fightID">战斗ID</option>
+            <option value="fightPercentage">FFLogs进度%</option>
+            <option value="lastPhase">最终阶段</option>
+            <option value="finalPhaseHPPercent">最终阶段剩余血量%</option>
+            <option value="duplicateCount">重复记录数</option>
+          </select>
+        </div>
+        <div>
+          <label for="sortDirection">方向</label>
+          <select id="sortDirection">
+            <option value="asc">升序</option>
+            <option value="desc">降序</option>
+          </select>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button id="clearTableFiltersBtn" type="button">重置</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th><button class="sort-btn" type="button" data-sort="attemptNo">序号<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="realStartTime">现实开始时间<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="reportCode">报告ID<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="fightID">战斗ID<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="kill">是否通关<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="fightPercentage">FFLogs进度%<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="lastPhase">最终阶段<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="stuckStage">卡点阶段<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="isBestFightPercentage">最低进度<span class="sort-indicator"></span></button></th>
+              <th><button class="sort-btn" type="button" data-sort="finalPhaseHPPercent">最终阶段剩余血量%<span class="sort-indicator"></span></button></th>
+              <th>血量明细</th>
+              <th><button class="sort-btn" type="button" data-sort="duplicateCount">重复记录数<span class="sort-indicator"></span></button></th>
+            </tr>
+          </thead>
+          <tbody id="fightRows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-title">运行日志</div>
+      <div class="panel-body">
+        <pre class="log" id="log"></pre>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const API_URL = "https://www.fflogs.com/api/v2/client";
+    const TOKEN_URL = "https://www.fflogs.com/oauth/token";
+    const STORE_KEY = "fflogs-static-dashboard-v1";
+
+    const DEFAULT_PHASES = {
+      1085: {
+        1: "P1: Kefka",
+        2: "P2: Forsaken Kefka",
+        3: "P3: Exdeath and Chaos",
+        4: "P4: Kefka Says",
+        5: "P5: Ultima Kefka"
+      }
+    };
+
+    const PHASE_CN = {
+      "Clear": "通关",
+      "P1: Kefka": "P1：凯夫卡",
+      "P2: Forsaken Kefka": "P2：弃神凯夫卡",
+      "P3: Exdeath and Chaos": "P3：艾克斯德斯与混沌",
+      "P4: Kefka Says": "P4：凯夫卡说",
+      "P5: Ultima Kefka": "P5：终极凯夫卡"
+    };
+
+    const HEALTH_SOURCE_CN = {
+      skipped: "未查询",
+      targetResources: "事件血量",
+      kill: "通关",
+      assumed_100_no_events: "无血量事件，按100%",
+      not_found: "未找到"
+    };
+
+    const REPORTS_QUERY = `
+query(
+  $characterName: String!,
+  $serverSlug: String!,
+  $serverRegion: String!,
+  $encounterID: Int!,
+  $limit: Int!,
+  $page: Int!
+) {
+  characterData {
+    character(name: $characterName, serverSlug: $serverSlug, serverRegion: $serverRegion) {
+      id
+      name
+      server { name slug }
+      recentReports(limit: $limit, page: $page) {
+        data {
+          code
+          title
+          startTime
+          endTime
+          masterData {
+            actors { id name server type subType }
+          }
+          phases {
+            encounterID
+            separatesWipes
+            phases { id name isIntermission }
+          }
+          fights(encounterID: $encounterID) {
+            id
+            name
+            encounterID
+            kill
+            startTime
+            endTime
+            fightPercentage
+            lastPhase
+            lastPhaseAsAbsoluteIndex
+            lastPhaseIsIntermission
+            friendlyPlayers
+            phaseTransitions { id startTime }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+    const MASTER_DATA_QUERY = `
+query($code: String!) {
+  reportData {
+    report(code: $code) {
+      masterData {
+        actors { id name type subType gameID }
+      }
+    }
+  }
+}`;
+
+    const HEALTH_EVENTS_QUERY = `
+query($code: String!, $fightIDs: [Int], $startTime: Float!, $endTime: Float!, $limit: Int!) {
+  reportData {
+    report(code: $code) {
+      events(
+        dataType: DamageDone,
+        fightIDs: $fightIDs,
+        startTime: $startTime,
+        endTime: $endTime,
+        limit: $limit,
+        includeResources: true,
+        useActorIDs: true
+      ) {
+        data
+        nextPageTimestamp
+      }
+    }
+  }
+}`;
+
+    const RATE_LIMIT_QUERY = `
+query {
+  rateLimitData {
+    limitPerHour
+    pointsSpentThisHour
+    pointsResetIn
+  }
+}`;
+
+    const state = {
+      token: "",
+      rawFights: [],
+      fights: [],
+      character: null,
+      summary: null,
+      rateLimit: null,
+      abortController: null,
+      tableSort: {
+        key: "attemptNo",
+        direction: "asc"
+      }
+    };
+
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(text) {
+      $("status").textContent = text;
+    }
+
+    function log(text) {
+      const node = $("log");
+      const time = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+      node.textContent += `[${time}] ${text}\n`;
+      node.scrollTop = node.scrollHeight;
+    }
+
+    function clearLog() {
+      $("log").textContent = "";
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function requestJson(url, options, retries = 3) {
+      for (let attempt = 1; attempt <= retries; attempt += 1) {
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: state.abortController ? state.abortController.signal : undefined
+          });
+          const text = await response.text();
+          let payload = null;
+          try {
+            payload = text ? JSON.parse(text) : {};
+          } catch (error) {
+            throw new Error(`响应不是 JSON：${text.slice(0, 180)}`);
+          }
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${JSON.stringify(payload).slice(0, 300)}`);
+          }
+          return payload;
+        } catch (error) {
+          if (error.name === "AbortError") {
+            throw error;
+          }
+          if (attempt < retries) {
+            await sleep(800 * attempt);
+            continue;
+          }
+          throw error;
+        }
+      }
+    }
+
+    async function getToken() {
+      const manualToken = $("manualToken").value.trim();
+      if (manualToken) {
+        return manualToken;
+      }
+
+      const clientId = $("clientId").value.trim();
+      const clientSecret = $("clientSecret").value.trim();
+      if (!clientId || !clientSecret) {
+        throw new Error("需要 Client ID 和 Client Secret，或手动填写访问令牌。");
+      }
+
+      const body = new URLSearchParams({ grant_type: "client_credentials" });
+      const payload = await requestJson(TOKEN_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body
+      });
+      if (!payload.access_token) {
+        throw new Error("没有获取到 access_token。");
+      }
+      return payload.access_token;
+    }
+
+    async function graphQL(query, variables) {
+      const payload = await requestJson(API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${state.token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ query, variables })
+      });
+
+      if (payload.errors && payload.errors.length) {
+        const message = payload.errors.map((item) => item.message).join("\n");
+        const error = new Error(message);
+        error.isComplexity = message.includes("Max query complexity");
+        throw error;
+      }
+      return payload.data;
+    }
+
+    function formatResetIn(seconds) {
+      const value = Math.max(0, Number(seconds) || 0);
+      const minutes = Math.floor(value / 60);
+      const rest = Math.floor(value % 60);
+      return `${minutes}分${String(rest).padStart(2, "0")}秒`;
+    }
+
+    function renderRateLimit(rateLimit) {
+      const card = $("rateLimitCard");
+      card.classList.remove("warning", "danger");
+      if (!rateLimit) {
+        $("rateLimitValue").textContent = "-";
+        $("rateLimitMeta").textContent = "未查询";
+        return;
+      }
+
+      const limit = Number(rateLimit.limitPerHour) || 0;
+      const spent = Number(rateLimit.pointsSpentThisHour) || 0;
+      const remaining = Math.max(0, limit - spent);
+      const percentRemaining = limit ? remaining / limit : 0;
+      $("rateLimitValue").textContent = `${remaining}/${limit}`;
+      $("rateLimitMeta").textContent = `已用 ${spent}，${formatResetIn(rateLimit.pointsResetIn)} 后重置`;
+
+      if (remaining <= 100 || percentRemaining <= 0.1) {
+        card.classList.add("danger");
+        setStatus(`额度偏低：剩余 ${remaining}/${limit}`);
+      } else if (remaining <= 500 || percentRemaining <= 0.25) {
+        card.classList.add("warning");
+      }
+    }
+
+    async function refreshRateLimit({ silent = false } = {}) {
+      if (!state.token) {
+        state.token = await getToken();
+      }
+      const data = await graphQL(RATE_LIMIT_QUERY, {});
+      state.rateLimit = data.rateLimitData;
+      renderRateLimit(state.rateLimit);
+      if (!silent) {
+        log(`额度：已用 ${state.rateLimit.pointsSpentThisHour}/${state.rateLimit.limitPerHour}，${formatResetIn(state.rateLimit.pointsResetIn)} 后重置。`);
+      }
+      return state.rateLimit;
+    }
+
+    function numberValue(id, fallback) {
+      const value = Number($(id).value);
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function phaseNameFor(phaseId, reportPhaseMap, encounterId) {
+      if (phaseId == null) return "";
+      if (reportPhaseMap.has(phaseId)) return reportPhaseMap.get(phaseId);
+      const fallback = DEFAULT_PHASES[encounterId] || {};
+      return fallback[phaseId] || `Phase ${phaseId}`;
+    }
+
+    function buildPhaseMap(report, encounterId) {
+      const groups = report.phases || [];
+      for (const group of groups) {
+        if (group.encounterID !== encounterId) continue;
+        const map = new Map();
+        for (const phase of group.phases || []) {
+          map.set(phase.id, phase.name);
+        }
+        return map;
+      }
+      return new Map();
+    }
+
+    function formatDuration(ms) {
+      const total = Math.max(0, Math.floor(ms));
+      const minutes = Math.floor(total / 60000);
+      const seconds = Math.floor((total % 60000) / 1000);
+      const millis = total % 1000;
+      return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
+    }
+
+    function formatTime(ms) {
+      return new Date(ms).toLocaleString("zh-CN", {
+        hour12: false,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    }
+
+    function characterServerNames(character) {
+      const server = character.server || {};
+      return new Set([server.name, server.slug].filter(Boolean));
+    }
+
+    function targetActorIdsForReport(report, character) {
+      const serverNames = characterServerNames(character);
+      const actorIds = new Set();
+      for (const actor of (report.masterData || {}).actors || []) {
+        if (actor.type !== "Player") continue;
+        if (actor.subType === "LimitBreak") continue;
+        if (actor.name !== character.name) continue;
+        if (!serverNames.has(actor.server)) continue;
+        if (actor.id != null) actorIds.add(actor.id);
+      }
+      return actorIds;
+    }
+
+    function normalizeFight(report, fight, character, encounterId, afterMs, targetActorIds) {
+      const friendlyPlayers = new Set(fight.friendlyPlayers || []);
+      const hasTarget = Array.from(targetActorIds || []).some((actorId) => friendlyPlayers.has(actorId));
+      if (!hasTarget) return null;
+
+      const reportStart = Number(report.startTime);
+      const realStart = reportStart + Number(fight.startTime);
+      const realEnd = reportStart + Number(fight.endTime);
+      if (afterMs && realStart < afterMs) return null;
+
+      const phaseMap = buildPhaseMap(report, encounterId);
+      const phaseTransitions = (fight.phaseTransitions || []).map((transition) => {
+        const relativeStartMs = Number(transition.startTime) - Number(fight.startTime);
+        return {
+          id: transition.id,
+          name: phaseNameFor(transition.id, phaseMap, encounterId),
+          relativeStartMs,
+          relativeStart: formatDuration(relativeStartMs),
+          reportStartMs: Number(transition.startTime),
+          realStartTime: reportStart + Number(transition.startTime)
+        };
+      });
+      const durationMs = Number(fight.endTime) - Number(fight.startTime);
+
+      return {
+        characterID: character.id,
+        characterName: character.name,
+        server: character.server,
+        reportCode: report.code,
+        reportTitle: report.title,
+        reportStartTime: reportStart,
+        reportEndTime: Number(report.endTime),
+        reportHasPhaseDefinitions: phaseMap.size > 0,
+        fightID: fight.id,
+        fightName: fight.name,
+        encounterID: fight.encounterID,
+        kill: fight.kill,
+        fightPercentage: fight.fightPercentage,
+        lastPhase: fight.lastPhase,
+        lastPhaseName: phaseNameFor(fight.lastPhase, phaseMap, encounterId),
+        relativeStartMs: Number(fight.startTime),
+        relativeEndMs: Number(fight.endTime),
+        realStartTime: realStart,
+        realEndTime: realEnd,
+        realStartISO: formatTime(realStart),
+        realEndISO: formatTime(realEnd),
+        durationMs,
+        duration: formatDuration(durationMs),
+        phaseTransitions,
+        duplicateCount: 1,
+        duplicates: [],
+        finalPhaseHPPercent: null,
+        finalPhaseHPDetail: "",
+        healthSource: "skipped",
+        healthIncomplete: false,
+        healthEventCount: 0,
+        isBestFightPercentage: false,
+        targetActorIDs: Array.from(targetActorIds)
+      };
+    }
+
+    async function collectFights() {
+      const encounterId = numberValue("encounterId", 1085);
+      const afterMs = numberValue("afterMs", 0);
+      let limit = Math.min(100, Math.max(1, numberValue("limit", 20)));
+      const emptyLimit = Math.max(0, numberValue("emptyPages", 3));
+
+      while (true) {
+        try {
+          return await collectFightsWithLimit(encounterId, afterMs, limit, emptyLimit);
+        } catch (error) {
+          if (!error.isComplexity || limit <= 1) throw error;
+          const nextLimit = Math.max(1, Math.floor(limit / 2));
+          log(`复杂度超限，分页数量 ${limit} 调整为 ${nextLimit} 后重试。`);
+          limit = nextLimit;
+        }
+      }
+    }
+
+    async function collectFightsWithLimit(encounterId, afterMs, limit, emptyLimit) {
+      const variablesBase = {
+        characterName: $("characterName").value.trim(),
+        serverSlug: $("serverSlug").value.trim(),
+        serverRegion: $("serverRegion").value.trim() || "CN",
+        encounterID: encounterId,
+        limit
+      };
+      if (!variablesBase.characterName || !variablesBase.serverSlug) {
+        throw new Error("需要玩家名和服务器。");
+      }
+
+      let page = 1;
+      let emptyPages = 0;
+      const fights = [];
+      let character = null;
+
+      while (true) {
+        const data = await graphQL(REPORTS_QUERY, { ...variablesBase, page });
+        character = data.characterData.character;
+        if (!character) throw new Error("没有找到角色。");
+
+        const reports = character.recentReports.data || [];
+        if (!reports.length) {
+          log(`page ${page}: 没有数据，停止。`);
+          break;
+        }
+
+        const pageFights = [];
+        let pageReportStart = Infinity;
+        let pageReportEnd = 0;
+        for (const report of reports) {
+          pageReportStart = Math.min(pageReportStart, Number(report.startTime));
+          pageReportEnd = Math.max(pageReportEnd, Number(report.endTime));
+          const targetActorIds = targetActorIdsForReport(report, character);
+          for (const fight of report.fights || []) {
+            const normalized = normalizeFight(report, fight, character, encounterId, afterMs, targetActorIds);
+            if (normalized) pageFights.push(normalized);
+          }
+        }
+
+        fights.push(...pageFights);
+        emptyPages = pageFights.length ? 0 : emptyPages + 1;
+        log(`page ${page}: 报告 ${reports.length}，战斗 ${pageFights.length}，时间 ${formatTime(pageReportStart)} ~ ${formatTime(pageReportEnd)}`);
+        setStatus(`分页 ${page}，累计战斗 ${fights.length}`);
+
+        if (reports.length < limit) break;
+        if (afterMs && pageReportEnd < afterMs) break;
+        if (emptyLimit && emptyPages >= emptyLimit) break;
+        page += 1;
+        await sleep(0);
+      }
+
+      return { character, fights };
+    }
+
+    function chooseDuplicateWinner(group) {
+      return group.slice().sort((a, b) => {
+        const scoreA = [
+          a.reportHasPhaseDefinitions ? 1 : 0,
+          a.reportTitle === "Dancing Mad" ? 1 : 0,
+          a.reportTitle.includes("Dancing Mad") ? 1 : 0,
+          a.durationMs,
+          -a.realStartTime
+        ];
+        const scoreB = [
+          b.reportHasPhaseDefinitions ? 1 : 0,
+          b.reportTitle === "Dancing Mad" ? 1 : 0,
+          b.reportTitle.includes("Dancing Mad") ? 1 : 0,
+          b.durationMs,
+          -b.realStartTime
+        ];
+        for (let i = 0; i < scoreA.length; i += 1) {
+          if (scoreA[i] !== scoreB[i]) return scoreB[i] - scoreA[i];
+        }
+        return 0;
+      })[0];
+    }
+
+    function dedupeByRealStart(fights, windowMs) {
+      if (!fights.length) return [];
+      const sorted = fights.slice().sort((a, b) => a.realStartTime - b.realStartTime);
+      const groups = [];
+      let current = [sorted[0]];
+      let groupStart = sorted[0].realStartTime;
+
+      for (const fight of sorted.slice(1)) {
+        if (fight.realStartTime - groupStart <= windowMs) {
+          current.push(fight);
+        } else {
+          groups.push(current);
+          current = [fight];
+          groupStart = fight.realStartTime;
+        }
+      }
+      groups.push(current);
+
+      return groups.map((group) => {
+        const selected = chooseDuplicateWinner(group);
+        const winner = { ...selected };
+        winner.duplicateCount = group.length;
+        winner.duplicates = group
+          .filter((item) => item !== selected)
+          .map((item) => ({
+            reportCode: item.reportCode,
+            fightID: item.fightID,
+            realStartTime: item.realStartTime
+          }));
+        return winner;
+      }).sort((a, b) => a.realStartTime - b.realStartTime);
+    }
+
+    function pPassed(fight, phaseId) {
+      if (fight.kill) return true;
+      return (fight.lastPhase || 0) > phaseId;
+    }
+
+    function annotateProgress(fights) {
+      fights.forEach((fight, index) => {
+        fight.attemptNo = index + 1;
+        fight.p1Passed = pPassed(fight, 1);
+        fight.p2Passed = pPassed(fight, 2);
+        fight.p3Passed = pPassed(fight, 3);
+        fight.p4Passed = pPassed(fight, 4);
+        fight.stuckStage = fight.kill ? "Clear" : fight.lastPhaseName;
+      });
+
+      const best = fights.reduce((current, fight) => {
+        if (!current) return fight;
+        const a = fight.fightPercentage == null ? 9999 : fight.fightPercentage;
+        const b = current.fightPercentage == null ? 9999 : current.fightPercentage;
+        if (a !== b) return a < b ? fight : current;
+        return fight.realStartTime < current.realStartTime ? fight : current;
+      }, null);
+      if (best) best.isBestFightPercentage = true;
+      return best;
+    }
+
+    function lastPhaseStartMs(fight) {
+      const transition = fight.phaseTransitions.find((item) => item.id === fight.lastPhase);
+      return transition ? transition.reportStartMs : fight.relativeStartMs;
+    }
+
+    async function queryMasterActors(code) {
+      const data = await graphQL(MASTER_DATA_QUERY, { code });
+      const actors = data.reportData.report.masterData.actors || [];
+      const map = new Map();
+      for (const actor of actors) map.set(actor.id, actor);
+      return map;
+    }
+
+    async function queryHealthEvents(code, fightId, startTime, endTime, limit) {
+      const data = await graphQL(HEALTH_EVENTS_QUERY, {
+        code,
+        fightIDs: [fightId],
+        startTime,
+        endTime,
+        limit
+      });
+      return data.reportData.report.events;
+    }
+
+    function processHealthEvents(events, actors, lastByTarget) {
+      for (const event of events || []) {
+        const resources = event.targetResources;
+        const targetId = event.targetID;
+        if (!resources || targetId == null) continue;
+
+        const actor = actors.get(targetId) || {};
+        if (actor.type !== "NPC" || actor.subType !== "Boss") continue;
+
+        const hp = resources.hitPoints;
+        const maxHp = resources.maxHitPoints;
+        if (hp == null || !maxHp) continue;
+
+        lastByTarget.set(targetId, {
+          timestamp: event.timestamp,
+          targetID: targetId,
+          name: actor.name,
+          gameID: actor.gameID,
+          hitPoints: hp,
+          maxHitPoints: maxHp,
+          percent: hp / maxHp * 100
+        });
+      }
+    }
+
+    async function fetchHealthForFight(fight) {
+      if (fight.kill) {
+        fight.finalPhaseHPPercent = 0;
+        fight.finalPhaseHPDetail = "通关";
+        fight.healthSource = "kill";
+        return;
+      }
+
+      const healthWindow = numberValue("healthWindow", 60000);
+      const eventLimit = 1000;
+      const maxPages = 3;
+      const phaseStart = lastPhaseStartMs(fight);
+      const fightEnd = fight.relativeEndMs;
+      let nextStart = Math.max(phaseStart, fightEnd - healthWindow);
+      const actors = await queryMasterActors(fight.reportCode);
+      const lastByTarget = new Map();
+      let eventCount = 0;
+      let incomplete = false;
+
+      for (let page = 0; page < maxPages && nextStart < fightEnd; page += 1) {
+        const events = await queryHealthEvents(fight.reportCode, fight.fightID, nextStart, fightEnd, eventLimit);
+        eventCount += (events.data || []).length;
+        processHealthEvents(events.data || [], actors, lastByTarget);
+        if (!events.nextPageTimestamp) break;
+        if (events.nextPageTimestamp <= nextStart) {
+          incomplete = true;
+          break;
+        }
+        nextStart = events.nextPageTimestamp;
+        if (page === maxPages - 1) incomplete = true;
+      }
+
+      const targets = Array.from(lastByTarget.values()).sort((a, b) => String(a.name).localeCompare(String(b.name), "zh-CN"));
+      if (targets.length) {
+        const hp = targets.reduce((sum, item) => sum + item.hitPoints, 0);
+        const maxHp = targets.reduce((sum, item) => sum + item.maxHitPoints, 0);
+        fight.finalPhaseHPPercent = maxHp ? hp / maxHp * 100 : null;
+        fight.finalPhaseHPDetail = targets.map((item) => `${cnHealthName(item.name)} ${item.percent.toFixed(2)}%`).join("；");
+        fight.healthSource = "targetResources";
+      } else {
+        fight.finalPhaseHPPercent = 100;
+        fight.finalPhaseHPDetail = "最终阶段窗口内没有Boss血量事件，按100%";
+        fight.healthSource = "assumed_100_no_events";
+      }
+      fight.healthIncomplete = incomplete;
+      fight.healthEventCount = eventCount;
+    }
+
+    async function annotateHealth(bestFight, fights) {
+      const mode = $("healthMode").value;
+      if (mode === "none") return;
+      if (mode === "best") {
+        if (!bestFight) return;
+        log(`查询最低进度血量：${bestFight.reportCode}#${bestFight.fightID}`);
+        await fetchHealthForFight(bestFight);
+        return;
+      }
+
+      let index = 0;
+      for (const fight of fights) {
+        index += 1;
+        await fetchHealthForFight(fight);
+        if (index === 1 || index === fights.length || index % 25 === 0) {
+          log(`血量 ${index}/${fights.length}: ${fight.reportCode}#${fight.fightID}`);
+        }
+      }
+    }
+
+    function cnPhase(value) {
+      return PHASE_CN[value] || value || "";
+    }
+
+    function cnHealthName(value) {
+      return String(value || "")
+        .replaceAll("Chaos", "混沌")
+        .replaceAll("Exdeath", "艾克斯德斯")
+        .replaceAll("Kefka", "凯夫卡");
+    }
+
+    function pct(value) {
+      return value == null || Number.isNaN(Number(value)) ? "-" : `${Number(value).toFixed(2)}%`;
+    }
+
+    function buildSummary(fights) {
+      const stuckCounts = new Map();
+      for (const fight of fights) {
+        stuckCounts.set(fight.stuckStage, (stuckCounts.get(fight.stuckStage) || 0) + 1);
+      }
+      return {
+        battleCount: fights.length,
+        killCount: fights.filter((item) => item.kill).length,
+        p1PassCount: fights.filter((item) => item.p1Passed).length,
+        p2PassCount: fights.filter((item) => item.p2Passed).length,
+        p3PassCount: fights.filter((item) => item.p3Passed).length,
+        p4PassCount: fights.filter((item) => item.p4Passed).length,
+        stuckCounts
+      };
+    }
+
+    function renderSummary(summary, best) {
+      $("battleCount").textContent = summary.battleCount;
+      $("killCount").textContent = summary.killCount;
+      $("p1Count").textContent = summary.p1PassCount;
+      $("p2Count").textContent = summary.p2PassCount;
+
+      if (best) {
+        $("bestPercent").textContent = pct(best.fightPercentage);
+        $("bestMeta").textContent = `${cnPhase(best.stuckStage)} · ${best.reportCode}#${best.fightID}`;
+        $("bestHp").textContent = pct(best.finalPhaseHPPercent);
+        $("bestHpDetail").textContent = best.finalPhaseHPDetail || HEALTH_SOURCE_CN[best.healthSource] || "-";
+      } else {
+        $("bestPercent").textContent = "-";
+        $("bestMeta").textContent = "-";
+        $("bestHp").textContent = "-";
+        $("bestHpDetail").textContent = "-";
+      }
+    }
+
+    function setupCanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return { ctx, width: rect.width, height: rect.height };
+    }
+
+    function drawNoData(canvas) {
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#66707d";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("暂无数据", width / 2, height / 2);
+    }
+
+    function drawBarChart(canvas, labels, values, color) {
+      if (!values.length) return drawNoData(canvas);
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, width, height);
+      const left = 48;
+      const right = 18;
+      const top = 18;
+      const bottom = 64;
+      const chartW = width - left - right;
+      const chartH = height - top - bottom;
+      const maxValue = Math.max(1, ...values);
+      const barW = chartW / values.length * 0.62;
+
+      ctx.strokeStyle = "#d9dee5";
+      ctx.beginPath();
+      ctx.moveTo(left, top);
+      ctx.lineTo(left, top + chartH);
+      ctx.lineTo(left + chartW, top + chartH);
+      ctx.stroke();
+
+      values.forEach((value, index) => {
+        const x = left + (index + 0.5) * (chartW / values.length) - barW / 2;
+        const h = chartH * value / maxValue;
+        const y = top + chartH - h;
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, barW, h);
+        ctx.fillStyle = "#20242a";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText(String(value), x + barW / 2, y - 5);
+        ctx.save();
+        ctx.translate(x + barW / 2, top + chartH + 10);
+        ctx.rotate(-Math.PI / 6);
+        ctx.fillStyle = "#66707d";
+        ctx.fillText(labels[index], 0, 14);
+        ctx.restore();
+      });
+    }
+
+    function drawProgressChart(canvas, fights, best) {
+      if (!fights.length) return drawNoData(canvas);
+      const { ctx, width, height } = setupCanvas(canvas);
+      ctx.clearRect(0, 0, width, height);
+      const left = 48;
+      const right = 18;
+      const top = 18;
+      const bottom = 34;
+      const chartW = width - left - right;
+      const chartH = height - top - bottom;
+
+      ctx.strokeStyle = "#d9dee5";
+      ctx.beginPath();
+      ctx.moveTo(left, top);
+      ctx.lineTo(left, top + chartH);
+      ctx.lineTo(left + chartW, top + chartH);
+      ctx.stroke();
+
+      ctx.fillStyle = "#66707d";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "right";
+      [0, 25, 50, 75, 100].forEach((tick) => {
+        const y = top + chartH - chartH * tick / 100;
+        ctx.strokeStyle = "#edf0f3";
+        ctx.beginPath();
+        ctx.moveTo(left, y);
+        ctx.lineTo(left + chartW, y);
+        ctx.stroke();
+        ctx.fillText(`${tick}%`, left - 8, y + 4);
+      });
+
+      ctx.fillStyle = "#376fc2";
+      fights.forEach((fight, index) => {
+        if (fight.fightPercentage == null) return;
+        const x = left + (fights.length === 1 ? chartW / 2 : chartW * index / (fights.length - 1));
+        const y = top + chartH - chartH * Math.max(0, Math.min(100, fight.fightPercentage)) / 100;
+        ctx.beginPath();
+        ctx.arc(x, y, fight === best ? 5 : 2.4, 0, Math.PI * 2);
+        ctx.fillStyle = fight === best ? "#bd3b36" : "#376fc2";
+        ctx.fill();
+      });
+
+      ctx.fillStyle = "#66707d";
+      ctx.textAlign = "center";
+      ctx.fillText("尝试顺序", left + chartW / 2, height - 8);
+    }
+
+    function renderCharts(summary, fights, best) {
+      const stageLabels = Array.from(summary.stuckCounts.keys()).map(cnPhase);
+      const stageValues = Array.from(summary.stuckCounts.values());
+      drawBarChart($("stageChart"), stageLabels, stageValues, "#167c6b");
+      drawBarChart(
+        $("passChart"),
+        ["P1通过", "P2通过", "P3通过", "P4通过", "通关"],
+        [summary.p1PassCount, summary.p2PassCount, summary.p3PassCount, summary.p4PassCount, summary.killCount],
+        "#b7791f"
+      );
+      drawProgressChart($("progressChart"), fights, best);
+    }
+
+    function populateStageFilter(fights) {
+      const current = $("stageFilter").value;
+      const stages = Array.from(new Set(fights.map((fight) => fight.stuckStage).filter(Boolean)))
+        .sort((a, b) => cnPhase(a).localeCompare(cnPhase(b), "zh-CN"));
+      $("stageFilter").innerHTML = [
+        '<option value="all">全部阶段</option>',
+        ...stages.map((stage) => `<option value="${escapeHtml(stage)}">${escapeHtml(cnPhase(stage))}</option>`)
+      ].join("");
+      if (current && stages.includes(current)) {
+        $("stageFilter").value = current;
+      }
+    }
+
+    function sortValue(fight, key) {
+      switch (key) {
+        case "attemptNo":
+        case "realStartTime":
+        case "fightID":
+        case "fightPercentage":
+        case "lastPhase":
+        case "finalPhaseHPPercent":
+        case "duplicateCount":
+          return fight[key] == null ? Number.POSITIVE_INFINITY : Number(fight[key]);
+        case "kill":
+        case "isBestFightPercentage":
+          return fight[key] ? 1 : 0;
+        case "stuckStage":
+          return cnPhase(fight.stuckStage);
+        case "reportCode":
+          return fight.reportCode || "";
+        default:
+          return fight[key] || "";
+      }
+    }
+
+    function compareValues(a, b) {
+      if (typeof a === "number" && typeof b === "number") {
+        return a - b;
+      }
+      return String(a).localeCompare(String(b), "zh-CN", { numeric: true });
+    }
+
+    function getVisibleFights(fights = state.fights) {
+      const search = $("tableSearch").value.trim().toLowerCase();
+      const status = $("statusFilter").value;
+      const stage = $("stageFilter").value;
+      const key = state.tableSort.key;
+      const direction = state.tableSort.direction === "desc" ? -1 : 1;
+
+      return fights
+        .filter((fight) => {
+          if (status === "kill" && !fight.kill) return false;
+          if (status === "wipe" && fight.kill) return false;
+          if (status === "best" && !fight.isBestFightPercentage) return false;
+          if (stage !== "all" && fight.stuckStage !== stage) return false;
+          if (!search) return true;
+
+          const haystack = [
+            fight.attemptNo,
+            fight.realStartISO,
+            fight.reportCode,
+            fight.reportTitle,
+            fight.fightID,
+            fight.fightName,
+            cnPhase(fight.lastPhaseName),
+            cnPhase(fight.stuckStage),
+            pct(fight.fightPercentage),
+            pct(fight.finalPhaseHPPercent),
+            fight.finalPhaseHPDetail
+          ].join(" ").toLowerCase();
+          return haystack.includes(search);
+        })
+        .sort((left, right) => {
+          const result = compareValues(sortValue(left, key), sortValue(right, key));
+          if (result !== 0) return result * direction;
+          return (left.attemptNo - right.attemptNo) * direction;
+        });
+    }
+
+    function updateSortControls() {
+      $("sortField").value = state.tableSort.key;
+      $("sortDirection").value = state.tableSort.direction;
+      document.querySelectorAll(".sort-btn").forEach((button) => {
+        const indicator = button.querySelector(".sort-indicator");
+        if (!indicator) return;
+        indicator.textContent = button.dataset.sort === state.tableSort.key
+          ? (state.tableSort.direction === "asc" ? "▲" : "▼")
+          : "";
+      });
+    }
+
+    function renderTable(fights = state.fights) {
+      updateSortControls();
+      const visibleFights = getVisibleFights(fights);
+      $("tableMeta").textContent = `${visibleFights.length} / ${fights.length} 行`;
+      const rows = visibleFights.map((fight) => {
+        const best = fight.isBestFightPercentage ? '<span class="pill blue">是</span>' : "";
+        const kill = fight.kill ? '<span class="pill green">是</span>' : '<span class="pill red">否</span>';
+        return `
+          <tr>
+            <td>${fight.attemptNo}</td>
+            <td>${fight.realStartISO}</td>
+            <td>${fight.reportCode}</td>
+            <td>${fight.fightID}</td>
+            <td>${kill}</td>
+            <td>${pct(fight.fightPercentage)}</td>
+            <td>${cnPhase(fight.lastPhaseName)}</td>
+            <td>${cnPhase(fight.stuckStage)}</td>
+            <td>${best}</td>
+            <td>${pct(fight.finalPhaseHPPercent)}</td>
+            <td class="wrap">${escapeHtml(fight.finalPhaseHPDetail || HEALTH_SOURCE_CN[fight.healthSource] || "")}</td>
+            <td>${fight.duplicateCount || 1}</td>
+          </tr>
+        `;
+      }).join("");
+      $("fightRows").innerHTML = rows;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function toCsvValue(value) {
+      const text = value == null ? "" : String(value);
+      return `"${text.replaceAll('"', '""')}"`;
+    }
+
+    function fightsToCsv(fights) {
+      const headers = ["序号", "现实开始时间", "报告ID", "战斗ID", "是否通关", "FFLogs进度%", "最终阶段", "卡点阶段", "是否最低进度", "最终阶段剩余血量%", "血量明细"];
+      const lines = [headers.map(toCsvValue).join(",")];
+      for (const fight of fights) {
+        lines.push([
+          fight.attemptNo,
+          fight.realStartISO,
+          fight.reportCode,
+          fight.fightID,
+          fight.kill ? "是" : "否",
+          pct(fight.fightPercentage),
+          cnPhase(fight.lastPhaseName),
+          cnPhase(fight.stuckStage),
+          fight.isBestFightPercentage ? "是" : "否",
+          pct(fight.finalPhaseHPPercent),
+          fight.finalPhaseHPDetail
+        ].map(toCsvValue).join(","));
+      }
+      return lines.join("\n");
+    }
+
+    function saveCredentials() {
+      const payload = {
+        clientId: $("clientId").value,
+        clientSecret: $("clientSecret").value,
+        manualToken: $("manualToken").value
+      };
+      localStorage.setItem(STORE_KEY, JSON.stringify(payload));
+      setStatus("凭证已保存到本机浏览器");
+    }
+
+    function loadCredentials() {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return;
+      try {
+        const payload = JSON.parse(raw);
+        $("clientId").value = payload.clientId || "";
+        $("clientSecret").value = payload.clientSecret || "";
+        $("manualToken").value = payload.manualToken || "";
+      } catch {
+        localStorage.removeItem(STORE_KEY);
+      }
+    }
+
+    function clearCredentials() {
+      localStorage.removeItem(STORE_KEY);
+      $("clientId").value = "";
+      $("clientSecret").value = "";
+      $("manualToken").value = "";
+      state.token = "";
+      state.rateLimit = null;
+      renderRateLimit(null);
+      setStatus("凭证已清除");
+    }
+
+    async function refreshRateLimitFromButton() {
+      try {
+        $("refreshRateBtn").disabled = true;
+        setStatus("查询额度");
+        await refreshRateLimit();
+        setStatus("额度已更新");
+      } catch (error) {
+        setStatus("额度查询失败");
+        log(`额度查询失败：${error.message}`);
+      } finally {
+        $("refreshRateBtn").disabled = false;
+      }
+    }
+
+    async function run() {
+      clearLog();
+      state.abortController = new AbortController();
+      $("runBtn").disabled = true;
+      $("stopBtn").disabled = false;
+      $("refreshRateBtn").disabled = true;
+      $("downloadJsonBtn").disabled = true;
+      $("downloadCsvBtn").disabled = true;
+
+      try {
+        setStatus("获取令牌");
+        state.token = await getToken();
+        log("令牌已就绪。");
+        await refreshRateLimit();
+
+        setStatus("查询报告");
+        const { character, fights: rawFights } = await collectFights();
+        state.character = character;
+        state.rawFights = rawFights;
+        log(`原始战斗数：${rawFights.length}`);
+
+        const dedupeWindow = Math.max(0, numberValue("dedupeMs", 5000));
+        const fights = dedupeByRealStart(rawFights, dedupeWindow);
+        const best = annotateProgress(fights);
+        log(`去重后战斗数：${fights.length}`);
+
+        setStatus("计算血量");
+        await annotateHealth(best, fights);
+
+        const summary = buildSummary(fights);
+        state.fights = fights;
+        state.summary = summary;
+        renderSummary(summary, best);
+        renderCharts(summary, fights, best);
+        populateStageFilter(fights);
+        renderTable(fights);
+
+        $("downloadJsonBtn").disabled = false;
+        $("downloadCsvBtn").disabled = false;
+        await refreshRateLimit({ silent: true });
+        setStatus("完成");
+      } catch (error) {
+        if (error.name === "AbortError") {
+          setStatus("已停止");
+          log("已停止。");
+        } else {
+          setStatus("失败");
+          log(`错误：${error.message}`);
+          if (String(error.message).includes("Failed to fetch")) {
+            log("浏览器可能拦截了跨域请求。");
+          }
+        }
+      } finally {
+        $("runBtn").disabled = false;
+        $("stopBtn").disabled = true;
+        $("refreshRateBtn").disabled = false;
+        state.abortController = null;
+      }
+    }
+
+    function stop() {
+      if (state.abortController) state.abortController.abort();
+    }
+
+    function bindEvents() {
+      $("saveCredentialsBtn").addEventListener("click", saveCredentials);
+      $("refreshRateBtn").addEventListener("click", refreshRateLimitFromButton);
+      $("clearCredentialsBtn").addEventListener("click", clearCredentials);
+      $("runBtn").addEventListener("click", run);
+      $("stopBtn").addEventListener("click", stop);
+      ["tableSearch", "statusFilter", "stageFilter"].forEach((id) => {
+        $(id).addEventListener("input", () => renderTable());
+        $(id).addEventListener("change", () => renderTable());
+      });
+      $("sortField").addEventListener("change", () => {
+        state.tableSort.key = $("sortField").value;
+        renderTable();
+      });
+      $("sortDirection").addEventListener("change", () => {
+        state.tableSort.direction = $("sortDirection").value;
+        renderTable();
+      });
+      $("clearTableFiltersBtn").addEventListener("click", () => {
+        $("tableSearch").value = "";
+        $("statusFilter").value = "all";
+        $("stageFilter").value = "all";
+        state.tableSort = { key: "attemptNo", direction: "asc" };
+        renderTable();
+      });
+      document.querySelectorAll(".sort-btn").forEach((button) => {
+        button.addEventListener("click", () => {
+          const key = button.dataset.sort;
+          if (state.tableSort.key === key) {
+            state.tableSort.direction = state.tableSort.direction === "asc" ? "desc" : "asc";
+          } else {
+            state.tableSort.key = key;
+            state.tableSort.direction = key === "fightPercentage" ? "asc" : "asc";
+          }
+          renderTable();
+        });
+      });
+      $("downloadJsonBtn").addEventListener("click", () => {
+        download("fflogs_进度数据.json", JSON.stringify({
+          character: state.character,
+          summary: state.summary,
+          fights: state.fights
+        }, null, 2), "application/json;charset=utf-8");
+      });
+      $("downloadCsvBtn").addEventListener("click", () => {
+        download("fflogs_战斗明细.csv", "\ufeff" + fightsToCsv(getVisibleFights()), "text/csv;charset=utf-8");
+      });
+      window.addEventListener("resize", () => {
+        if (!state.fights.length || !state.summary) return;
+        const best = state.fights.find((fight) => fight.isBestFightPercentage);
+        renderCharts(state.summary, state.fights, best);
+      });
+    }
+
+    loadCredentials();
+    bindEvents();
+    drawNoData($("stageChart"));
+    drawNoData($("passChart"));
+    drawNoData($("progressChart"));
+  </script>
+</body>
+</html>

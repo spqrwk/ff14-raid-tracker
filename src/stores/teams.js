@@ -29,17 +29,30 @@ export const useTeamStore = defineStore('teams', () => {
     saveCurrentTeamId(currentTeamId.value)
   }
 
+  // 自动迁移：旧 duty 字段 → duties 数组
+  function migrateTeamDuties() {
+    let changed = false
+    for (const t of teams.value) {
+      if (t.duty !== undefined) {
+        t.duties = t.duty ? [t.duty] : []
+        delete t.duty
+        changed = true
+      }
+      if (!t.duties) t.duties = []
+    }
+    if (changed) persistTeams()
+  }
+  migrateTeamDuties()
+
   // 自动迁移：如果没有队伍但有队员/记录，创建默认队伍
   function ensureDefaultTeam() {
     if (teams.value.length > 0) return
-    // 检查是否有遗留数据
     const hasPlayers = localStorage.getItem('ff14_raid_players')
     const hasRecords = localStorage.getItem('ff14_raid_records')
     if (hasPlayers || hasRecords) {
-      const team = addTeam('默认队伍', '')
+      const team = addTeam('默认队伍', [])
       currentTeamId.value = team.id
       persistCurrentId()
-      // 标记现有数据属于该队伍（数据迁移在 store 初始化时处理）
       return team
     }
     return null
@@ -75,34 +88,40 @@ export const useTeamStore = defineStore('teams', () => {
     ]
   }
 
-  function getPhaseOrder(duty) {
-    if (DUTY_PHASES[duty]) return [...DUTY_PHASES[duty]]
+  // 当前队伍的"当前副本"
+  const currentDuty = ref('')
+
+  function getPhaseOrderForDuty(duty) {
+    if (duty && DUTY_PHASES[duty]) return [...DUTY_PHASES[duty]]
     return [...DEFAULT_PHASE_ORDER]
   }
 
-  // 当前队伍的阶段顺序（可读写）
   const currentPhaseOrder = computed({
     get() {
+      if (currentDuty.value && DUTY_PHASES[currentDuty.value]) {
+        return [...DUTY_PHASES[currentDuty.value]]
+      }
       const t = currentTeam.value
       return t?.phaseOrder || DEFAULT_PHASE_ORDER
     },
     set(val) {
       const t = teams.value.find(t => t.id === currentTeamId.value)
-      if (t) {
-        t.phaseOrder = val
-        persistTeams()
-      }
+      if (t) { t.phaseOrder = val; persistTeams() }
     }
   })
 
-  // CRUD
-  function addTeam(name, duty = '') {
+  function setCurrentDuty(duty) {
+    currentDuty.value = duty || ''
+  }
+
+  function addTeam(name, duties = []) {
     if (!name.trim()) return null
+    if (typeof duties === 'string') duties = duties ? [duties] : [] // backward compat
     const team = {
       id: generateId(),
       name: name.trim(),
-      duty: duty || '',
-      phaseOrder: getPhaseOrder(duty),
+      duties,
+      phaseOrder: getPhaseOrder(duties),
       createdAt: new Date().toISOString()
     }
     teams.value.push(team)
@@ -156,12 +175,15 @@ export const useTeamStore = defineStore('teams', () => {
     teams,
     currentTeamId,
     currentTeam,
+    currentDuty,
     currentPhaseOrder,
     DEFAULT_PHASE_ORDER,
     addTeam,
     removeTeam,
     updateTeam,
     setCurrentTeam,
+    setCurrentDuty,
+    getPhaseOrderForDuty,
     ensureDefaultTeam,
     persistTeams
   }

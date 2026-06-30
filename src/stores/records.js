@@ -16,16 +16,19 @@ export const useRecordStore = defineStore('records', () => {
     return teamStore.currentPhaseOrder
   })
 
-  // ---- 数据迁移：旧数据没有 teamId ----
   function migrateIfNeeded() {
     const teamStore = useTeamStore()
     const team = teamStore.currentTeam
     if (!team) return
     let changed = false
     for (const r of records.value) {
-      if (!r.teamId) {
-        r.teamId = team.id
-        changed = true
+      if (!r.teamId) { r.teamId = team.id; changed = true }
+    }
+    // 旧记录没有 duty：如果队伍只有一个副本，自动归属
+    if (team.duties?.length === 1) {
+      const onlyDuty = team.duties[0]
+      for (const r of records.value) {
+        if (!r.duty) { r.duty = onlyDuty; changed = true }
       }
     }
     if (changed) persist()
@@ -112,6 +115,7 @@ export const useRecordStore = defineStore('records', () => {
         id: generateId(),
         type: 'mistake',
         teamId: tid,
+        duty: e.duty || '',
         date: recordDate,
         pullNumber,
         phase: e.phase,
@@ -124,8 +128,8 @@ export const useRecordStore = defineStore('records', () => {
       records.value.push(record)
       created.push(record)
     }
-    // 如果包含团灭/狂暴/罪无可恕，结束本把
-    if (level === 'wipe' || level === 'enrage' || level === 'unforgivable') {
+    // 如果任何一条标记了 endPull，结束本把
+    if (entries.some(e => e.endPull) || level === 'wipe' || level === 'enrage' || level === 'unforgivable') {
       records.value.push({
         id: generateId(),
         type: 'pull_end',
@@ -140,36 +144,21 @@ export const useRecordStore = defineStore('records', () => {
     return created
   }
 
-  // --- 添加犯错记录（单人） ---
-  function addMistake({ playerId, playerName, phase, description, level, date }) {
-    if (!playerId || !phase || !level) {
-      throw new Error('请填写完整的犯错信息（队员、阶段、等级）')
-    }
-    const teamStore = useTeamStore()
-    const tid = teamStore.currentTeamId
+  function addMistake({ playerId, playerName, phase, description, level, date, duty }) {
+    if (!playerId || !phase || !level) throw new Error('请填写完整的犯错信息')
+    const teamStore = useTeamStore(); const tid = teamStore.currentTeamId
     const recordDate = date || new Date().toISOString().split('T')[0]
     const pullNumber = getCurrentPullNumber(recordDate)
-
     const record = {
-      id: generateId(),
-      type: 'mistake',
-      teamId: tid,
-      date: recordDate,
-      pullNumber,
-      phase,
-      playerId,
-      playerName,
-      description: description || '',
-      level,
-      timestamp: new Date().toISOString()
+      id: generateId(), type: 'mistake', teamId: tid, duty: duty || '',
+      date: recordDate, pullNumber, phase, playerId, playerName,
+      description: description || '', level, timestamp: new Date().toISOString()
     }
-    records.value.push(record)
-    persist()
-    return record
+    records.value.push(record); persist(); return record
   }
 
   // --- 添加进度记录 ---
-  function addProgress({ phase, notes, date, endPull }) {
+  function addProgress({ phase, notes, date, endPull, duty }) {
     if (!phase) throw new Error('请填写到达的阶段')
     const teamStore = useTeamStore()
     const tid = teamStore.currentTeamId
@@ -357,11 +346,12 @@ export const useRecordStore = defineStore('records', () => {
   }
 
   // --- 队员犯错统计（当前队伍） ---
-  function getPlayerMistakeStats(startDate, endDate) {
+  function getPlayerMistakeStats(startDate, endDate, duty) {
     const tid = useTeamStore().currentTeamId
     const mistakeRecords = records.value.filter(r =>
       r.type === 'mistake' && r.teamId === tid &&
-      r.date >= startDate && r.date <= endDate
+      r.date >= startDate && r.date <= endDate &&
+      (!duty || r.duty === duty)
     )
     const statsMap = {}
     for (const r of mistakeRecords) {

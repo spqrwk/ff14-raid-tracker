@@ -1,75 +1,100 @@
 <template>
   <div id="app-container">
-    <!-- 移动端汉堡按钮 -->
-    <div class="mobile-toggle" @click="sidebarOpen = !sidebarOpen">
-      <el-icon :size="24"><component :is="sidebarOpen ? 'Close' : 'Menu'" /></el-icon>
-    </div>
+    <!-- ========== 无队伍时：显示初始化引导 ========== -->
+    <Onboarding v-if="showOnboarding" @done="onOnboardingDone" />
 
-    <!-- 遮罩层 -->
-    <div v-if="sidebarOpen" class="mobile-overlay" @click="sidebarOpen = false" />
+    <!-- ========== 正常布局 ========== -->
+    <template v-else>
+      <!-- 移动端汉堡按钮 -->
+      <div class="mobile-toggle" @click="sidebarOpen = !sidebarOpen">
+        <el-icon :size="24"><component :is="sidebarOpen ? 'Close' : 'Menu'" /></el-icon>
+      </div>
 
-    <el-container>
-      <el-aside width="220px" class="app-aside" :class="{ 'sidebar-open': sidebarOpen }">
-        <div class="logo">
-          <el-icon :size="28"><Aim /></el-icon>
-          <span>FF14 开荒记录</span>
-        </div>
-        <el-menu
-          :default-active="currentRoute"
-          router
-          background-color="#1a1a2e"
-          text-color="#a0a0b8"
-          active-text-color="#ffd700"
-          @select="sidebarOpen = false"
-        >
-          <el-menu-item index="/">
-            <el-icon><Monitor /></el-icon>
-            <span>开荒面板</span>
-          </el-menu-item>
-          <el-menu-item index="/sessions">
-            <el-icon><List /></el-icon>
-            <span>历史记录</span>
-          </el-menu-item>
-          <el-menu-item index="/stats">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>数据统计</span>
-          </el-menu-item>
-          <el-menu-item index="/analyze">
-            <el-icon><Download /></el-icon>
-            <span>FFLogs 导入</span>
-          </el-menu-item>
-          <el-menu-item index="/help">
-            <el-icon><Reading /></el-icon>
-            <span>使用帮助</span>
-          </el-menu-item>
-          <el-menu-item index="/teams">
-            <el-icon><Collection /></el-icon>
-            <span>队伍管理</span>
-          </el-menu-item>
-          <el-menu-item index="/players">
-            <el-icon><User /></el-icon>
-            <span>成员管理</span>
-          </el-menu-item>
-          <el-menu-item index="/settings">
-            <el-icon><Setting /></el-icon>
-            <span>数据管理</span>
-          </el-menu-item>
-        </el-menu>
-        <div class="sidebar-bottom">
-          <div class="menu-divider">作者</div>
-          <div class="author-item"><el-icon><UserFilled /></el-icon><span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span></div>
-          <div class="menu-divider">特别鸣谢</div>
-          <div class="author-item" style="cursor:pointer" @click="showThanks"><el-icon><UserFilled /></el-icon><span style="color:#ffd700">陆小唐@静语庄园</span></div>
-          <div class="version-text">v1.0.2 (beta)</div>
-        </div>
-      </el-aside>
+      <!-- 遮罩层 -->
+      <div v-if="sidebarOpen" class="mobile-overlay" @click="sidebarOpen = false" />
 
-      <el-main class="app-main">
-        <router-view />
-      </el-main>
-    </el-container>
+      <el-container>
+        <el-aside width="220px" class="app-aside" :class="{ 'sidebar-open': sidebarOpen }">
+          <div class="logo">
+            <el-icon :size="28"><Aim /></el-icon>
+            <span>FF14 高难工具箱</span>
+          </div>
+          <el-menu
+            :default-active="currentRoute"
+            router
+            background-color="#1a1a2e"
+            text-color="#a0a0b8"
+            active-text-color="#ffd700"
+            @select="sidebarOpen = false"
+          >
+            <el-menu-item index="/">
+              <el-icon><Monitor /></el-icon>
+              <span>开荒面板</span>
+            </el-menu-item>
+            <el-menu-item index="/sessions">
+              <el-icon><List /></el-icon>
+              <span>历史记录</span>
+            </el-menu-item>
+            <el-menu-item index="/stats">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>数据统计</span>
+            </el-menu-item>
+            <el-menu-item index="/analyze">
+              <el-icon><Download /></el-icon>
+              <span>FFLogs 导入</span>
+            </el-menu-item>
+            <el-menu-item index="/fflogs">
+              <el-icon><Search /></el-icon>
+              <span>FFLogs 查询</span>
+            </el-menu-item>
+            <el-menu-item index="/help">
+              <el-icon><Reading /></el-icon>
+              <span>使用帮助</span>
+            </el-menu-item>
+            <el-menu-item index="/teams">
+              <el-icon><Collection /></el-icon>
+              <span>队伍管理</span>
+            </el-menu-item>
+            <el-menu-item index="/players">
+              <el-icon><User /></el-icon>
+              <span>成员管理</span>
+            </el-menu-item>
+            <el-menu-item index="/settings">
+              <el-icon><Setting /></el-icon>
+              <span>数据管理</span>
+            </el-menu-item>
+          </el-menu>
+          <div class="sidebar-bottom">
+            <div class="menu-divider">作者</div>
+            <div class="author-item"><el-icon><UserFilled /></el-icon><span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span></div>
+            <div class="menu-divider">特别鸣谢</div>
+            <div class="author-item" style="cursor:pointer" @click="showThanks"><el-icon><UserFilled /></el-icon><span style="color:#ffd700">陆小唐@静语庄园</span></div>
+            <div class="menu-divider">FFLogs API</div>
+            <div class="sidebar-cred-row">
+              <el-input v-model="clientId" placeholder="Client ID" size="small" class="sidebar-cred-input" />
+            </div>
+            <div class="sidebar-cred-row">
+              <el-input v-model="clientSecret" placeholder="Client Secret" size="small" type="password" class="sidebar-cred-input" show-password />
+            </div>
+            <div class="sidebar-cred-row sidebar-cred-rate">
+              <span class="rate-badge-side" :class="{ warning: rateLimit && rateRemaining < 500, danger: rateLimit && rateRemaining < 100 }">
+                <template v-if="rateLimit">额度 {{ rateRemaining }}/{{ rateLimit.limitPerHour }}</template>
+                <template v-else-if="rateError">{{ rateError }}</template>
+                <template v-else-if="hasCredential">加载额度...</template>
+                <template v-else>未配置</template>
+              </span>
+            </div>
+            <div class="version-text">v1.1.0</div>
+          </div>
+        </el-aside>
 
-    <!-- 首次访问提示 -->
+        <el-main class="app-main">
+          <router-view />
+        </el-main>
+      </el-container>
+    </template>
+
+    <!-- 首次访问提示（Onboarding 时也显示） -->
     <el-dialog
       v-model="showWelcome"
       title="📋 数据存储说明"
@@ -92,7 +117,7 @@
       </template>
     </el-dialog>
 
-    <!-- 更新日志 -->
+    <!-- 更新日志（Onboarding 时也显示） -->
     <el-dialog v-model="showChangelog" :title="'📦 更新日志 v' + CURRENT_VERSION" :width="isMobile ? '90%' : '520px'" :close-on-click-modal="false">
       <div class="changelog-content">
         <div v-for="(items, ver) in CHANGELOG" :key="ver">
@@ -110,11 +135,51 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
+import { useTeamStore } from './stores/teams'
+import { useFflogsAuth } from './composables/useFflogsAuth'
+import Onboarding from './views/Onboarding.vue'
+
+const auth = useFflogsAuth()
+// 别名到顶层 ref，模板 v-model 才能正常双向绑定
+const { clientId, clientSecret, rateLimit, rateRemaining, rateError, hasCredential } = auth
 
 const route = useRoute()
+const teamStore = useTeamStore()
+
+// ---- 初始化引导 ----
+// 无队伍且不是从 onboarding 跳转到导入页时，显示引导
+const IMPORT_FLAG_KEY = 'ff14_onboarding_import'
+const showOnboarding = ref(false)
+
+function updateShowOnboarding() {
+  if (teamStore.teams.length > 0) {
+    sessionStorage.removeItem(IMPORT_FLAG_KEY)
+    showOnboarding.value = false
+    return
+  }
+  // 用户点了"去导入"并且当前在设置页 → 暂时放行
+  if (sessionStorage.getItem(IMPORT_FLAG_KEY)) {
+    if (route.path === '/settings') {
+      showOnboarding.value = false
+      return
+    }
+    // 离开设置页但队伍仍为空 → 清除标记，重新显示 onboarding
+    sessionStorage.removeItem(IMPORT_FLAG_KEY)
+  }
+  showOnboarding.value = true
+}
+
+function onOnboardingDone() {
+  sessionStorage.removeItem(IMPORT_FLAG_KEY)
+  updateShowOnboarding()
+}
+
+// 监听队伍变化和路由变化
+watch(() => teamStore.teams.length, updateShowOnboarding)
+watch(() => route.path, updateShowOnboarding)
 
 function showThanks() {
   ElMessageBox.alert(
@@ -144,8 +209,16 @@ function dismissWelcome() {
 }
 
 // 更新日志
-const CURRENT_VERSION = '1.0.2'
+const CURRENT_VERSION = '1.1.0'
 const CHANGELOG = {
+  '1.1.0': [
+    '队伍支持多副本，记录分副本标记，分P信息按副本独立',
+    '新增 FFLogs 查询工具（进度统计 + 初通队友对比）',
+    '新增初始化引导流程，侧边栏 API 凭证管理',
+    '新增设备故障犯错等级，弹窗选择是否结束本把',
+    '数据统计增加副本筛选、饼图点击弹窗查看明细',
+    '历史记录改为按把次展示，副本名显示在每把标题',
+  ],
   '1.0.2': [
     '手动结束本把支持下拉选择到达阶段',
     '无团灭级错误的 Pull 可点击编辑到达进度',
@@ -177,6 +250,7 @@ onMounted(() => {
   if (!localStorage.getItem(WELCOME_KEY)) showWelcome.value = true
   const lastVer = localStorage.getItem(LAST_VERSION_KEY)
   if (lastVer !== CURRENT_VERSION) showChangelog.value = true
+  updateShowOnboarding()
 })
 </script>
 
@@ -286,6 +360,27 @@ body {
 .sidebar-bottom .menu-divider { font-size: 11px; color: #505060; letter-spacing: 2px; padding: 10px 0 4px; }
 .sidebar-bottom .author-item { display: flex; align-items: center; gap: 8px; color: #ffd700; font-size: 14px; padding: 6px 0; }
 .sidebar-bottom .version-text { text-align: center; color: #404050; font-size: 11px; padding-top: 8px; }
+
+.sidebar-cred-row { padding: 3px 0; }
+
+.sidebar-cred-input .el-input__wrapper {
+  background: #141428 !important;
+  box-shadow: 0 0 0 1px #2a2a4a inset !important;
+}
+
+.sidebar-cred-rate { padding-top: 6px; text-align: center; }
+
+.rate-badge-side {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #1a2a1a;
+  color: #67c23a;
+  font-weight: 600;
+  display: inline-block;
+}
+.rate-badge-side.warning { background: #2a2510; color: #e6a23c; }
+.rate-badge-side.danger { background: #2a1015; color: #f56c6c; }
 .sidebar-bottom .thanks-item { text-align: center; color: #c0a060; font-size: 12px; padding: 4px 0; }
 
 /* ====== Element Plus 暗色主题 ====== */

@@ -13,13 +13,22 @@
           <el-option
             v-for="t in teamStore.teams"
             :key="t.id"
-            :label="t.duty ? `${t.name} · ${t.duty}` : t.name"
+            :label="t.duties?.length ? `${t.name} · ${t.duties.join(' ')}` : t.name"
             :value="t.id"
           />
         </el-select>
         <el-tag v-if="currentTeam" type="success" size="small" effect="dark">
-          {{ currentTeam.duty || '未设定副本' }}
+          {{ currentTeam.name }}
         </el-tag>
+        <el-select
+          v-if="currentTeam?.duties?.length"
+          v-model="currentDuty"
+          placeholder="当前副本"
+          style="width: 180px"
+          size="small"
+        >
+          <el-option v-for="d in currentTeam.duties" :key="d" :label="d" :value="d" />
+        </el-select>
       </div>
     </div>
 
@@ -169,6 +178,12 @@
                     <span class="level-desc">极其低级的重大失误</span>
                   </span>
                 </el-radio-button>
+                <el-radio-button value="equipment">
+                  <span class="level-label">
+                    <el-tag size="small" effect="dark" color="#666">设备故障</el-tag>
+                    <span class="level-desc">电脑/网络/外设问题</span>
+                  </span>
+                </el-radio-button>
               </el-radio-group>
             </el-form-item>
 
@@ -180,20 +195,16 @@
               <span v-if="mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage' || mistakeForm.level === 'unforgivable'" class="pull-end-hint">
                 ⚠ 提交后将自动结束本把 (第 {{ currentPull }} 把)，下一把为第 {{ currentPull + 1 }} 把
               </span>
+              <span v-if="mistakeForm.level === 'equipment'" class="pull-end-hint">
+                ⚠ 提交后将弹窗选择继续还是结束本把
+              </span>
             </el-form-item>
           </el-form>
         </el-tab-pane>
 
         <!-- ========== 记录进度 ========== -->
         <el-tab-pane label="记录进度" name="progress">
-          <el-form
-            ref="progressFormRef"
-            :model="progressForm"
-            :rules="progressRules"
-            label-width="80px"
-            label-position="top"
-            class="record-form"
-          >
+          <el-form ref="progressFormRef" :model="progressForm" :rules="progressRules" label-width="80px" label-position="top" class="record-form">
             <el-row :gutter="16">
               <el-col :span="12">
                 <el-form-item label="到达P几" prop="phase">
@@ -293,6 +304,7 @@
               class="record-item"
             >
               <template v-if="rec.type === 'mistake'">
+                <span v-if="rec.duty" class="rec-duty">{{ rec.duty }}</span>
                 <span class="rec-player">{{ rec.playerName }}</span>
                 <span class="rec-phase">{{ rec.phase }}</span>
                 <el-tag
@@ -306,6 +318,7 @@
                 </el-button>
               </template>
               <template v-else-if="rec.type === 'progress'">
+                <span v-if="rec.duty" class="rec-duty">{{ rec.duty }}</span>
                 <span class="rec-progress-tag">
                   <el-icon><Top /></el-icon>
                   到达 {{ rec.phase }}
@@ -413,6 +426,19 @@ const recordStore = useRecordStore()
 const teamStore = useTeamStore()
 
 const currentTeam = computed(() => teamStore.currentTeam)
+const currentDuty = computed({
+  get: () => teamStore.currentDuty,
+  set: v => { teamStore.setCurrentDuty(v) }
+})
+// 初始化：如果队伍有副本但没选，默认选第一个
+if (!currentDuty.value && currentTeam.value?.duties?.length) {
+  teamStore.setCurrentDuty(currentTeam.value.duties[0])
+}
+watch(currentTeam, t => {
+  if (!currentDuty.value && t?.duties?.length) {
+    teamStore.setCurrentDuty(t.duties[0])
+  }
+})
 
 // 可选阶段（排除"已完成"，已完成通过通关按钮触发）
 const selectablePhases = computed(() =>
@@ -520,10 +546,22 @@ const mistakeRules = {
 function submitMistake() {
   mistakeFormRef.value?.validate(async (valid) => {
     if (!valid) return
+    if (mistakeForm.level === 'equipment') {
+      try {
+        await ElMessageBox.confirm('⚠ 设备故障已记录，是否结束本把？', '设备故障', {
+          confirmButtonText: '结束本把',
+          cancelButtonText: '继续',
+          distinguishCancelAndClose: true
+        })
+        mistakeForm._equipEndPull = true
+      } catch (action) {
+        mistakeForm._equipEndPull = false
+      }
+    }
     submitting.value = true
     try {
       const levelText = levelLabel(mistakeForm.level)
-      const isFatal = mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage' || mistakeForm.level === 'unforgivable'
+      const isFatal = mistakeForm.level === 'wipe' || mistakeForm.level === 'enrage' || mistakeForm.level === 'unforgivable' || (mistakeForm.level === 'equipment' && mistakeForm._equipEndPull)
 
       const entries = mistakeForm.playerIds
         .map(pid => {
@@ -532,9 +570,11 @@ function submitMistake() {
           return {
             playerId: pid,
             playerName: player.name,
+            duty: currentDuty.value,
             phase: mistakeForm.phase,
             description: mistakeForm.description,
             level: mistakeForm.level,
+            endPull: isFatal,
             date: today.value
           }
         })
@@ -585,6 +625,7 @@ function submitProgress() {
     submitting.value = true
     try {
       recordStore.addProgress({
+        duty: currentDuty.value,
         phase: progressForm.phase,
         notes: progressForm.notes,
         endPull: progressForm.endPull,
@@ -712,12 +753,12 @@ function handleEditSave() {
 }
 
 function levelLabel(level) {
-  const map = { death: '减员', wipe: '团灭', enrage: '狂暴', unforgivable: '罪无可恕' }
+  const map = { death: '减员', wipe: '团灭', enrage: '狂暴', unforgivable: '罪无可恕', equipment: '设备故障' }
   return map[level] || level
 }
 
 function levelTagType(level) {
-  const map = { death: 'warning', wipe: 'danger', enrage: 'danger', unforgivable: 'danger' }
+  const map = { death: 'warning', wipe: 'danger', enrage: 'danger', unforgivable: 'danger', equipment: 'info' }
   return map[level] || 'info'
 }
 </script>
@@ -912,6 +953,16 @@ function levelTagType(level) {
   box-shadow: 0 0 10px rgba(255, 51, 102, 0.3) !important;
 }
 
+:deep(.el-radio-button[value="equipment"] .el-radio-button__inner) {
+  border-color: #666 !important;
+}
+
+:deep(.el-radio-button[value="equipment"] .el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: #222 !important;
+  border-color: #888 !important;
+  box-shadow: 0 0 8px rgba(150, 150, 150, 0.2) !important;
+}
+
 .pull-end-hint {
   margin-left: 16px;
   font-size: 13px;
@@ -1011,6 +1062,14 @@ function levelTagType(level) {
   flex-wrap: wrap;
 }
 
+.rec-duty {
+  color: #ffd700;
+  font-size: 11px;
+  padding: 1px 6px;
+  border: 1px solid #3a3a20;
+  border-radius: 4px;
+  margin-right: 4px;
+}
 .rec-player {
   color: #67c23a;
   font-weight: 600;

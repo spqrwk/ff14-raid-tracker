@@ -6,7 +6,7 @@
       <div class="team-context">
         <el-tag v-if="currentTeam" type="success" size="small" effect="dark">
           {{ currentTeam.name }}
-          <template v-if="currentTeam.duty"> · {{ currentTeam.duty }}</template>
+          <template v-if="currentTeam.duties?.length"> · {{ currentTeam.duties.join(' · ') }}</template>
         </el-tag>
         <span v-else class="no-team-hint">请先创建队伍</span>
       </div>

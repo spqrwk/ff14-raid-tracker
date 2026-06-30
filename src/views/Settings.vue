@@ -102,7 +102,12 @@
           <span>阶段顺序配置</span>
         </div>
       </template>
-      <p class="desc">用逗号分隔，顺序决定折线图 Y 轴排列。例如：P1,P1.5,P2,P2.5,P3,P4,P5,P6</p>
+      <p class="desc">用逗号分隔，顺序决定折线图 Y 轴排列。</p>
+      <div class="phase-input-row" style="margin-bottom:8px">
+        <el-select v-model="phaseEditDuty" placeholder="选择副本（可选）" clearable size="small" style="width:200px" @change="onPhaseEditDutyChange">
+          <el-option v-for="d in (currentTeam?.duties || [])" :key="d" :label="d" :value="d" />
+        </el-select>
+      </div>
       <div class="phase-input-row">
         <el-input v-model="phaseInput" placeholder="P1,P1.5,P2,P2.5,..." style="flex:1"/>
         <el-button type="primary" @click="savePhaseOrder">保存</el-button>
@@ -351,8 +356,9 @@ function handleImportPlayers() {
         if (!exists) {
           teamStore.teams.push({ ...ft })
         } else {
-          // 更新队伍 name/duty
-          Object.assign(exists, { name: ft.name, duty: ft.duty || '' })
+          // 更新队伍 name/duties（兼容旧 duty 字段）
+          const duties = ft.duties || (ft.duty ? [ft.duty] : [])
+          Object.assign(exists, { name: ft.name, duties })
         }
       }
       teamStore.persistTeams()
@@ -387,7 +393,16 @@ function handleImportPlayers() {
 }
 
 // --- 阶段顺序 ---
+const phaseEditDuty = ref('')
 const phaseInput = ref(recordStore.phaseOrder.join(','))
+const currentTeam = computed(() => teamStore.currentTeam)
+function onPhaseEditDutyChange(duty) {
+  if (duty) {
+    phaseInput.value = teamStore.getPhaseOrderForDuty(duty).join(',')
+  } else {
+    phaseInput.value = recordStore.phaseOrder.join(',')
+  }
+}
 const orphanPhases = ref([])
 const phaseMap = ref({})
 const phaseUsage = ref({})
@@ -439,9 +454,11 @@ function savePhaseOrder() {
 }
 
 function resetPhaseOrder() {
-  const defaults = ['P1', 'P1.5', 'P2', 'P2.5', 'P3', 'P3.5', 'P4', 'P4.5', 'P5', 'P5.5', 'P6', 'P7', 'P8', '已完成']
-  phaseInput.value = defaults.join(',')
-  recordStore.updatePhaseOrder(defaults)
+  if (phaseEditDuty.value) {
+    phaseInput.value = teamStore.getPhaseOrderForDuty(phaseEditDuty.value).join(',')
+  } else {
+    phaseInput.value = teamStore.DEFAULT_PHASE_ORDER.join(',')
+  }
   ElMessage.success('已恢复默认阶段顺序')
 }
 

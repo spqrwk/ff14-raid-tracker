@@ -36,7 +36,7 @@
             <div class="team-meta">
               <span class="team-duty">
                 <el-icon><Location /></el-icon>
-                {{ team.duty || '未设置副本' }}
+                {{ team.duties?.length ? team.duties.join(' · ') : '未设置副本' }}
               </span>
               <span class="team-stats">
                 <el-icon><User /></el-icon>
@@ -110,12 +110,13 @@
             show-word-limit
           />
         </el-form-item>
-        <el-form-item label="攻略副本" prop="duty">
+        <el-form-item label="攻略副本" prop="duties">
           <el-select
-            v-model="form.duty"
+            v-model="form.duties"
+            multiple
             filterable
             allow-create
-            placeholder="选择或输入副本名称"
+            placeholder="选择副本（可多选）"
             style="width: 100%"
           >
             <el-option
@@ -163,7 +164,7 @@ const formRef = ref(null)
 
 const form = reactive({
   name: '',
-  duty: ''
+  duties: []
 })
 
 const formRules = {
@@ -177,7 +178,7 @@ function openAddDialog() {
   isEditing.value = false
   editingId.value = null
   form.name = ''
-  form.duty = ''
+  form.duties = []
   dialogVisible.value = true
 }
 
@@ -185,7 +186,7 @@ function openEditDialog(team) {
   isEditing.value = true
   editingId.value = team.id
   form.name = team.name
-  form.duty = team.duty || ''
+  form.duties = team.duties || []
   dialogVisible.value = true
 }
 
@@ -195,13 +196,12 @@ function handleSubmit() {
     if (isEditing.value) {
       teamStore.updateTeam(editingId.value, {
         name: form.name.trim(),
-        duty: form.duty
+        duties: form.duties
       })
       ElMessage.success('队伍信息已更新')
     } else {
-      const team = teamStore.addTeam(form.name.trim(), form.duty)
+      const team = teamStore.addTeam(form.name.trim(), form.duties)
       if (team) {
-        // 新建队伍自动切换
         teamStore.setCurrentTeam(team.id)
         ElMessage.success('队伍已创建并切换')
       }

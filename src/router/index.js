@@ -40,6 +40,11 @@ const routes = [
     path: '/analyze',
     name: 'Analyze',
     component: () => import('../views/Analyze.vue')
+  },
+  {
+    path: '/fflogs',
+    name: 'Fflogs',
+    component: () => import('../views/FflogsQuery.vue')
   }
 ]
 

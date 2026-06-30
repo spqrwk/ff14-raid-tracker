@@ -48,10 +48,12 @@
       <el-tab-pane label="队员统计" name="playerStats">
         <el-card shadow="never" class="inner-card">
           <template #header>
-            <span class="section-title">
-              <el-icon><User /></el-icon>
-              队员犯错次数统计
-            </span>
+            <div class="section-header-row">
+              <span class="section-title"><el-icon><User /></el-icon>队员犯错次数统计</span>
+              <el-select v-model="filterDuty" placeholder="副本" size="small" style="width:160px" @change="refreshStats">
+                <el-option v-for="d in dutyOptions" :key="d" :label="d" :value="d" />
+              </el-select>
+            </div>
           </template>
 
           <div v-if="playerStats.length === 0" class="empty-block">
@@ -122,10 +124,12 @@
       <el-tab-pane label="开荒进度" name="progressChart">
         <el-card shadow="never" class="inner-card">
           <template #header>
-            <span class="section-title">
-              <el-icon><TrendCharts /></el-icon>
-              开荒进度趋势（每把到达阶段）
-            </span>
+            <div class="section-header-row">
+              <span class="section-title"><el-icon><TrendCharts /></el-icon>开荒进度趋势（每把到达阶段）</span>
+              <el-select v-model="filterDuty" placeholder="副本" size="small" style="width:160px" @change="refreshStats">
+                <el-option v-for="d in dutyOptions" :key="d" :label="d" :value="d" />
+              </el-select>
+            </div>
           </template>
 
           <div v-if="progressionData.length === 0" class="empty-block">
@@ -164,6 +168,7 @@
                 :option="levelPieOption"
                 autoresize
                 style="height: 320px"
+                @click="onLevelPieClick"
               />
               <el-empty v-else description="暂无数据" :image-size="60" />
             </div>
@@ -174,6 +179,7 @@
                 :option="playerPieOption"
                 autoresize
                 style="height: 320px"
+                @click="onPlayerPieClick"
               />
               <el-empty v-else description="暂无数据" :image-size="60" />
             </div>
@@ -185,10 +191,12 @@
       <el-tab-pane label="队伍统计" name="teamStats">
         <el-card shadow="never" class="inner-card">
           <template #header>
-            <span class="section-title">
-              <el-icon><PieChart /></el-icon>
-              按职能分组统计
-            </span>
+            <div class="section-header-row">
+              <span class="section-title"><el-icon><PieChart /></el-icon>按职能分组统计</span>
+              <el-select v-model="filterDuty" placeholder="副本" size="small" style="width:160px" @change="refreshStats">
+                <el-option v-for="d in dutyOptions" :key="d" :label="d" :value="d" />
+              </el-select>
+            </div>
           </template>
 
           <div v-if="teamStatsData.length === 0" class="empty-block">
@@ -247,25 +255,78 @@
         </el-card>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 饼图点击详情弹窗 -->
+    <el-dialog v-model="detailVisible" :title="detailTitle" width="700px" destroy-on-close>
+      <el-table :data="detailRecords" stripe size="small" max-height="400" style="width:100%">
+        <el-table-column prop="date" label="日期" width="100" />
+        <el-table-column prop="duty" label="副本" width="100" />
+        <el-table-column prop="playerName" label="队员" width="90" />
+        <el-table-column prop="phase" label="阶段" width="70" />
+        <el-table-column label="等级" width="80">
+          <template #default="{ row }">
+            <el-tag v-if="row.level" :type="detailLevelTag(row.level)" size="small" effect="dark">{{ detailLevelLabel(row.level) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="120">
+          <template #default="{ row }">{{ row.description || '-' }}</template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import VChart from 'vue-echarts'
 import 'echarts'
 import { useRecordStore } from '../stores/records'
 import { usePlayerStore } from '../stores/players'
+import { useTeamStore } from '../stores/teams'
 
 const recordStore = useRecordStore()
 const playerStore = usePlayerStore()
+const router = useRouter()
+
+// 饼图点击弹窗
+const detailVisible = ref(false)
+const detailTitle = ref('')
+const detailRecords = ref([])
+function detailLevelLabel(l) { const m = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }; return m[l]||l }
+function detailLevelTag(l) { const m = { death:'warning', wipe:'danger', enrage:'danger', unforgivable:'danger', equipment:'info' }; return m[l]||'info' }
+
+function onLevelPieClick(params) {
+  const levelMap = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }
+  const levelKey = Object.keys(levelMap).find(k => levelMap[k] === params.name)
+  if (!levelKey) return
+  let recs = recordStore.records.filter(r => r.type==='mistake' && r.level===levelKey && r.date>=startDate.value && r.date<=endDate.value)
+  detailTitle.value = `${params.name} · ${recs.length} 条`
+  detailRecords.value = recs.sort((a, b) => b.date.localeCompare(a.date) || b.timestamp?.localeCompare(a.timestamp))
+  detailVisible.value = true
+}
+function onPlayerPieClick(params) {
+  let recs = recordStore.records.filter(r => r.type==='mistake' && r.playerName===params.name && r.date>=startDate.value && r.date<=endDate.value)
+  detailTitle.value = `${params.name} · ${recs.length} 条`
+  detailRecords.value = recs.sort((a, b) => b.date.localeCompare(a.date) || b.timestamp?.localeCompare(a.timestamp))
+  detailVisible.value = true
+}
 
 // --- 筛选条件 ---
 const dateRange = ref([
   new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0],
   new Date().toISOString().split('T')[0]
 ])
+const dutyOptions = computed(() => {
+  const teamStore = useTeamStore()
+  return teamStore.currentTeam?.duties || []
+})
+const filterDuty = ref(dutyOptions.value[0] || '')
 const filterPlayerId = ref('')
+watch(dutyOptions, v => { if (!filterDuty.value && v.length) filterDuty.value = v[0] })
 const activeStatsTab = ref('playerStats')
 
 const startDate = computed(() => dateRange.value?.[0] || '2000-01-01')
@@ -273,7 +334,7 @@ const endDate = computed(() => dateRange.value?.[1] || '2099-12-31')
 
 // --- 队员统计 ---
 const playerStats = computed(() => {
-  let stats = recordStore.getPlayerMistakeStats(startDate.value, endDate.value)
+  let stats = recordStore.getPlayerMistakeStats(startDate.value, endDate.value, filterDuty.value || undefined)
   if (filterPlayerId.value) {
     stats = stats.filter(s => s.playerId === filterPlayerId.value)
   }
@@ -330,6 +391,15 @@ function refreshStats() {
 // --- 开荒进度折线图 ---
 const progressionData = computed(() => {
   let data = recordStore.getProgressionData(startDate.value, endDate.value)
+  if (filterDuty.value) {
+    const dutyPullKeys = new Set()
+    for (const r of recordStore.records) {
+      if (r.duty === filterDuty.value && r.date >= startDate.value && r.date <= endDate.value) {
+        dutyPullKeys.add(`${r.date}||${r.pullNumber}`)
+      }
+    }
+    data = data.filter(d => dutyPullKeys.has(`${d.date}||${d.pullNumber}`))
+  }
   if (filterPlayerId.value) {
     // 如果筛选了队员，只需要该队员参与的那些 pull
     const playerPullKeys = new Set()
@@ -485,8 +555,11 @@ const progressionChartOption = computed(() => {
 })
 
 // --- 犯错等级分布饼图 ---
+// 犯错分布不区分副本，使用全量数据
+const allPlayerStats = computed(() => recordStore.getPlayerMistakeStats(startDate.value, endDate.value))
+
 const levelDistData = computed(() => {
-  const stats = playerStats.value
+  const stats = allPlayerStats.value
   let death = 0, wipe = 0, enrage = 0, unforgivable = 0
   for (const s of stats) {
     death += s.byLevel.death
@@ -544,7 +617,7 @@ const levelPieOption = computed(() => {
 
 // --- 队员犯错分布饼图 ---
 const playerDistData = computed(() => {
-  return playerStats.value
+  return allPlayerStats.value
     .filter(s => s.total > 0)
     .map(s => ({ name: s.playerName, value: s.total }))
 })
@@ -610,11 +683,13 @@ const ROLE_GROUPS = [
 ]
 
 const teamStatsData = computed(() => {
-  const mistakeRecords = recordStore.records.filter(r =>
+  let filteredRecs = recordStore.records.filter(r =>
     r.type === 'mistake' &&
     r.date >= startDate.value &&
     r.date <= endDate.value
   )
+  if (filterDuty.value) filteredRecs = filteredRecs.filter(r => r.duty === filterDuty.value)
+  const mistakeRecords = filteredRecs
 
   // 建立 playerId → role 映射
   const playerRoleMap = {}
@@ -657,11 +732,13 @@ const teamStatsData = computed(() => {
 })
 
 const teamBarOption = computed(() => {
-  const mistakeRecords = recordStore.records.filter(r =>
+  let filteredRecs = recordStore.records.filter(r =>
     r.type === 'mistake' &&
     r.date >= startDate.value &&
     r.date <= endDate.value
   )
+  if (filterDuty.value) filteredRecs = filteredRecs.filter(r => r.duty === filterDuty.value)
+  const mistakeRecords = filteredRecs
   const playerRoleMap = {}
   for (const p of playerStore.players) {
     if (p.role) playerRoleMap[p.id] = p.role
@@ -837,6 +914,7 @@ function formatShortDate(dateStr) {
   border-top: none;
 }
 
+.section-header-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
 .section-title {
   display: flex;
   align-items: center;

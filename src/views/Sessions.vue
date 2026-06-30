@@ -35,85 +35,13 @@
             <el-option label="进度" value="progress" />
           </el-select>
         </div>
-        <el-checkbox v-if="activeTab === 'pulls'" v-model="showStarredOnly" style="margin-left:auto">
+        <el-checkbox v-model="showStarredOnly" style="margin-left:auto">
           仅看加精
         </el-checkbox>
       </div>
     </el-card>
 
-    <!-- 双维度 Tab -->
-    <el-tabs v-model="activeTab" type="border-card" class="sessions-tabs">
-      <!-- ====== 按日期 ====== -->
-      <el-tab-pane label="按日期" name="date">
-        <div v-if="groupedRecords.length === 0" class="empty-state">
-          <el-empty description="没有符合条件的记录" :image-size="100" />
-        </div>
-        <div v-else class="records-list">
-          <div v-for="group in groupedRecords" :key="group.date" class="date-group">
-            <div class="date-header">
-              <span class="date-label">{{ group.date }}</span>
-              <span class="date-stats">{{ group.pulls.length }} 把 · 犯错 {{ group.mistakeCount }} 次</span>
-            </div>
-            <div v-for="pull in group.pulls" :key="pull.pullNumber" class="pull-block">
-              <div class="pull-block-header">
-                <el-tag :type="pull.ended ? 'danger' : ''" size="small" effect="dark">
-                  第 {{ pull.pullNumber }} 把
-                </el-tag>
-                <span v-if="pull.maxPhase" class="pull-max-phase">最远 {{ pull.maxPhase }}</span>
-                <span v-if="pull.ended" class="pull-end-badge">已结束</span>
-                <el-popconfirm title="确定删除这一把？" @confirm="handleDeletePull(group.date, pull.pullNumber)">
-                  <template #reference>
-                    <el-button type="danger" link size="small" style="margin-left:auto"><el-icon><Delete /></el-icon></el-button>
-                  </template>
-                </el-popconfirm>
-              </div>
-              <el-table :data="pull.records" size="small" style="width:100%" class="pull-table">
-                <el-table-column type="index" width="40" />
-                <el-table-column label="类型" width="70">
-                  <template #default="{ row: r }">
-                    <el-tag v-if="r.type==='mistake'" type="warning" size="small" effect="dark">犯错</el-tag>
-                    <el-tag v-else type="primary" size="small" effect="dark">进度</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="phase" label="阶段" width="70">
-                  <template #default="{ row: r }"><span class="phase-text">{{ r.phase||'-' }}</span></template>
-                </el-table-column>
-                <el-table-column prop="playerName" label="队员" width="90">
-                  <template #default="{ row: r }">
-                    <span v-if="r.type==='mistake'" class="player-text">{{ r.playerName }}</span><span v-else>-</span>
-                  </template>
-                </el-table-column>
-                <el-table-column label="详情" min-width="180">
-                  <template #default="{ row: r }">
-                    <template v-if="r.type==='mistake'">
-                      <el-tag :type="levelTagType(r.level)" size="small" effect="dark" class="level-mini-tag">{{ levelLabel(r.level) }}</el-tag>
-                      <span v-if="r.description" class="desc-text">{{ r.description }}</span>
-                      <span v-else class="no-desc">-</span>
-                    </template>
-                    <template v-else><span class="desc-text">{{ r.notes||'到达 '+r.phase }}</span></template>
-                  </template>
-                </el-table-column>
-                <el-table-column label="时间" width="70">
-                  <template #default="{ row: r }"><span class="time-text">{{ formatTime(r.timestamp) }}</span></template>
-                </el-table-column>
-                <el-table-column width="50" fixed="right">
-                  <template #default="{ row: r }">
-                    <el-button v-if="r.type==='mistake'" type="warning" link size="small" @click="openEditDialog(r)">
-                      <el-icon><Edit /></el-icon>
-                    </el-button>
-                    <el-popconfirm title="删除？" @confirm="handleDeleteRecord(r.id)">
-                      <template #reference><el-button type="danger" link size="small"><el-icon><Delete /></el-icon></el-button></template>
-                    </el-popconfirm>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
-          </div>
-        </div>
-      </el-tab-pane>
-
-      <!-- ====== 按把次 ====== -->
-      <el-tab-pane label="按把次" name="pulls">
+    <!-- 按把次列表 -->
         <div v-if="pullList.length === 0" class="empty-state">
           <el-empty description="没有符合条件的记录" :image-size="100" />
         </div>
@@ -137,6 +65,7 @@
                 </el-button>
                 <span class="pull-row-date">{{ pull.date.slice(5) }}</span>
                 <span class="pull-row-num">第{{ pull.pullNumber }}把</span>
+                <span v-if="pull.duty" class="pull-row-duty">{{ pull.duty }}</span>
                 <span class="pull-row-phase">{{ pull.maxPhase || '-' }}</span>
               </div>
               <div class="pull-row-right">
@@ -157,6 +86,9 @@
                     <el-tag v-if="r.type==='mistake'" type="warning" size="small" effect="dark">犯错</el-tag>
                     <el-tag v-else type="primary" size="small" effect="dark">进度</el-tag>
                   </template>
+                </el-table-column>
+                <el-table-column label="副本" width="80">
+                  <template #default="{ row: r }"><span class="duty-tag">{{ r.duty || '-' }}</span></template>
                 </el-table-column>
                 <el-table-column prop="phase" label="阶段" width="70">
                   <template #default="{ row: r }"><span class="phase-text">{{ r.phase||'-' }}</span></template>
@@ -187,9 +119,6 @@
             </div>
           </div>
         </div>
-      </el-tab-pane>
-    </el-tabs>
-
     <!-- 修改记录弹窗 -->
     <el-dialog v-model="editVisible" :title="editForm.type==='progress'?'修改进度':'修改记录'" width="420px" destroy-on-close>
       <el-form label-position="top" v-if="editForm.id">
@@ -310,8 +239,10 @@ const pullList = computed(() => {
     for (const r of pullRecords) {
       if (r.playerName) playerSet.add(r.playerName)
     }
+    const duty = pullRecords.find(r => r.duty)?.duty || ''
     return {
       ...pull,
+      duty,
       playerNames: Array.from(playerSet).join('、') || '-',
       records: filteredRecords.value.filter(
         r => r.date === pull.date && r.pullNumber === pull.pullNumber && r.type !== 'pull_end'
@@ -377,11 +308,11 @@ function handleDeletePull(date, pn) { recordStore.deletePull(date, pn) }
 
 // --- 辅助 ---
 function levelLabel(l) {
-  const m = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕' }
+  const m = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }
   return m[l]||l
 }
 function levelTagType(l) {
-  const m = { death:'warning', wipe:'danger', enrage:'danger', unforgivable:'danger' }
+  const m = { death:'warning', wipe:'danger', enrage:'danger', unforgivable:'danger', equipment:'info' }
   return m[l]||'info'
 }
 function formatTime(iso) {
@@ -392,6 +323,7 @@ function formatTime(iso) {
 
 <style scoped>
 .sessions-page { max-width: 1100px; margin: 0 auto; }
+.duty-tag { color: #ffd700; font-size: 12px; font-weight: 600; }
 
 .filter-card { margin-bottom: 16px; }
 .filter-bar { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -453,6 +385,7 @@ function formatTime(iso) {
 
 .pull-row-date { color: #808090; font-size: 13px; }
 .pull-row-num { color: #e0e0e0; font-weight: 600; font-size: 13px; }
+.pull-row-duty { color: #e6a23c; font-size: 12px; padding: 1px 8px; border: 1px solid #3a3020; border-radius: 4px; margin-right: 8px; }
 .pull-row-phase { color: #ffd700; font-weight: 700; font-size: 13px; }
 
 .pull-row-right { display: flex; align-items: center; gap: 14px; }
