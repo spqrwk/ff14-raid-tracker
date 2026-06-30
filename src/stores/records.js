@@ -24,11 +24,24 @@ export const useRecordStore = defineStore('records', () => {
     for (const r of records.value) {
       if (!r.teamId) { r.teamId = team.id; changed = true }
     }
-    // 旧记录没有 duty：如果队伍只有一个副本，自动归属
-    if (team.duties?.length === 1) {
-      const onlyDuty = team.duties[0]
+    // 旧记录没有 duty：自动归属
+    if (team.duties?.length) {
       for (const r of records.value) {
-        if (!r.duty) { r.duty = onlyDuty; changed = true }
+        if (!r.duty) {
+          if (team.duties.length === 1) {
+            r.duty = team.duties[0]; changed = true
+          } else {
+            // 多副本：从同 pull 的其他记录推断
+            const samePull = records.value.find(sr => sr.date === r.date && sr.pullNumber === r.pullNumber && sr.duty)
+            if (samePull) { r.duty = samePull.duty; changed = true }
+          }
+        }
+      }
+      // 从记录收集所有副本，补全到队伍
+      const recordDuties = new Set()
+      for (const r of records.value) { if (r.duty) recordDuties.add(r.duty) }
+      for (const d of recordDuties) {
+        if (!team.duties.includes(d)) { team.duties.push(d); changed = true }
       }
     }
     if (changed) persist()
