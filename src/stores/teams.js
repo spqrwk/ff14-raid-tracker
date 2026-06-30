@@ -121,7 +121,7 @@ export const useTeamStore = defineStore('teams', () => {
       id: generateId(),
       name: name.trim(),
       duties,
-      phaseOrder: getPhaseOrder(duties),
+      phaseOrder: getPhaseOrderForDuty(duties[0]),
       createdAt: new Date().toISOString()
     }
     teams.value.push(team)
