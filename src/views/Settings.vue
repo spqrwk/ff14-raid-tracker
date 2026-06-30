@@ -41,6 +41,11 @@
         </div>
       </template>
 
+      <p class="desc" style="margin-bottom:12px">
+        记录数 {{ recordStore.records.length }} · 队员 {{ playerStore.players.length }} ·
+        存储占用 {{ storageUsage }}
+        <span v-if="storageBytes > 3*1024*1024" style="color:#e6a23c">⚠ 建议导出备份</span>
+      </p>
       <div class="backup-grid">
         <!-- 导出全部 -->
         <div class="backup-item">
@@ -188,6 +193,21 @@ import { generateId } from '../utils/storage'
 const playerStore = usePlayerStore()
 const recordStore = useRecordStore()
 const teamStore = useTeamStore()
+
+const storageBytes = computed(() => {
+  let bytes = 0
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i)
+    if (k?.startsWith('ff14_')) bytes += (localStorage.getItem(k) || '').length
+  }
+  return bytes
+})
+const storageUsage = computed(() => {
+  const b = storageBytes.value
+  if (b > 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + ' MB'
+  if (b > 1024) return (b / 1024).toFixed(0) + ' KB'
+  return b + ' B'
+})
 
 const mistakeCount = computed(() => recordStore.records.filter(r => r.type === 'mistake').length)
 const progressCount = computed(() => recordStore.records.filter(r => r.type === 'progress').length)
