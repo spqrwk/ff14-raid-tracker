@@ -103,12 +103,12 @@ const route = useRoute()
 
 function showThanks() {
   ElMessageBox.alert(
-    '感谢 陆小唐@静语庄园 为以下副本贡献了默认分P阶段信息：\n\n' +
-    '🏆 究极神兵绝境战 — 完整 19 个阶段\n' +
-    '🐉 幻想龙诗歼灭战 — 完整 48 个阶段\n\n' +
-    '新建对应副本的队伍时将自动使用这些分P信息。',
+    '感谢 <b>陆小唐@静语庄园</b> 为以下副本贡献了默认分P阶段信息：<br><br>' +
+    '🏆 究极神兵绝境战 — 19 个阶段<br>' +
+    '🐉 幻想龙诗歼灭战 — 48 个阶段<br>' +
+    '<span style="color:#808090">新建对应副本的队伍时将自动使用这些分P信息。</span>',
     '特别鸣谢',
-    { confirmButtonText: '知道了', type: 'success', center: true }
+    { confirmButtonText: '知道了', dangerouslyUseHTMLString: true, center: true }
   )
 }
 const currentRoute = computed(() => route.path)
