@@ -52,6 +52,34 @@ export const useTeamStore = defineStore('teams', () => {
     '已完成'
   ]
 
+  // 副本专属阶段
+  const DUTY_PHASES = {
+    '究极神兵绝境战': [
+      'P1风圈前','P1风圈','P1挡枪','P1接线',
+      'P2火神柱前','P2火神柱','P2火神AOE后','P2火神冲',
+      'P3流沙','P3三连桶','P3石牢','P3运动会',
+      'P4转场','P4一运','P4二运','P4三运','P4撞球','P4家长会','P4狂暴',
+      '已完成'
+    ],
+    '幻想龙诗歼灭战': [
+      'P1AOE与分摊','P1多维空间斩（黑洞）','P1光芒剑（冲锋）','P1索尼','P1狂暴',
+      'P1.5',
+      'P2一运','P2远近剑','P2陨石','P2狂暴',
+      'P3转场','P3一运','P3二运','P3狂暴',
+      'P4撞球','P4幻象冲','P4狂暴',
+      'P4.5引导','P4.5战女神之枪',
+      'P5一运','P5二运','P5狂暴',
+      'P6一冰火线','P6一分摊','P6一远近死刑','P6十字火','P6二分摊','P6二远近','P6二冰火线','P6双龙俯冲','P6狂暴',
+      'P7转场','P7一地火','P7一踩塔','P7一陨石','P7二地火','P7二踩塔','P7二陨石','P7三地火','P7三踩塔','P7狂暴',
+      '已完成'
+    ]
+  }
+
+  function getPhaseOrder(duty) {
+    if (DUTY_PHASES[duty]) return [...DUTY_PHASES[duty]]
+    return [...DEFAULT_PHASE_ORDER]
+  }
+
   // 当前队伍的阶段顺序（可读写）
   const currentPhaseOrder = computed({
     get() {
@@ -74,7 +102,7 @@ export const useTeamStore = defineStore('teams', () => {
       id: generateId(),
       name: name.trim(),
       duty: duty || '',
-      phaseOrder: [...DEFAULT_PHASE_ORDER],
+      phaseOrder: getPhaseOrder(duty),
       createdAt: new Date().toISOString()
     }
     teams.value.push(team)

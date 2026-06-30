@@ -59,6 +59,7 @@
           <div class="menu-divider">作者</div>
           <div class="author-item"><el-icon><UserFilled /></el-icon><span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span></div>
           <div class="menu-divider">特别鸣谢</div>
+          <div class="author-item" style="cursor:pointer" @click="showThanks"><el-icon><UserFilled /></el-icon><span style="color:#ffd700">陆小唐@静语庄园</span></div>
           <div class="version-text">v1.0.1 (beta)</div>
         </div>
       </el-aside>
@@ -96,8 +97,20 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
 
 const route = useRoute()
+
+function showThanks() {
+  ElMessageBox.alert(
+    '感谢 陆小唐@静语庄园 为以下副本贡献了默认分P阶段信息：\n\n' +
+    '🏆 究极神兵绝境战 — 完整 19 个阶段\n' +
+    '🐉 幻想龙诗歼灭战 — 完整 48 个阶段\n\n' +
+    '新建对应副本的队伍时将自动使用这些分P信息。',
+    '特别鸣谢',
+    { confirmButtonText: '知道了', type: 'success', center: true }
+  )
+}
 const currentRoute = computed(() => route.path)
 
 // 移动端
@@ -225,6 +238,7 @@ body {
 .sidebar-bottom .menu-divider { font-size: 11px; color: #505060; letter-spacing: 2px; padding: 10px 0 4px; }
 .sidebar-bottom .author-item { display: flex; align-items: center; gap: 8px; color: #ffd700; font-size: 14px; padding: 6px 0; }
 .sidebar-bottom .version-text { text-align: center; color: #404050; font-size: 11px; padding-top: 8px; }
+.sidebar-bottom .thanks-item { text-align: center; color: #c0a060; font-size: 12px; padding: 4px 0; }
 
 /* ====== Element Plus 暗色主题 ====== */
 .el-card {

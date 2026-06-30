@@ -104,13 +104,24 @@
       </template>
       <p class="desc">用逗号分隔，顺序决定折线图 Y 轴排列。例如：P1,P1.5,P2,P2.5,P3,P4,P5,P6</p>
       <div class="phase-input-row">
-        <el-input
-          v-model="phaseInput"
-          placeholder="P1,P1.5,P2,P2.5,P3,P4,P5,P6,P7,P8"
-          style="flex:1"
-        />
+        <el-input v-model="phaseInput" placeholder="P1,P1.5,P2,P2.5,..." style="flex:1"/>
         <el-button type="primary" @click="savePhaseOrder">保存</el-button>
         <el-button @click="resetPhaseOrder">重置默认</el-button>
+      </div>
+
+      <!-- 孤儿阶段映射 -->
+      <div v-if="orphanPhases.length > 0" style="margin-top:16px">
+        <div class="desc" style="color:#e6a23c">⚠️ 以下阶段在记录中存在，但不在新的阶段顺序中。请手动映射：</div>
+        <div v-for="op in orphanPhases" :key="op" style="display:flex;align-items:center;gap:10px;margin:8px 0">
+          <span style="color:#e6a23c;min-width:100px">{{ op }}</span>
+          <span style="color:#808090">→</span>
+          <el-select v-model="phaseMap[op]" placeholder="映射到..." size="small" style="width:200px">
+            <el-option v-for="p in newPhaseList" :key="p" :label="p" :value="p"/>
+            <el-option label="-- 删除这些记录 --" value="__delete__"/>
+          </el-select>
+          <span style="color:#808090;font-size:12px">{{ phaseUsage[op] }} 条记录</span>
+        </div>
+        <el-button type="warning" size="small" @click="applyPhaseMap" style="margin-top:8px">应用映射</el-button>
       </div>
     </el-card>
 
@@ -377,6 +388,41 @@ function handleImportPlayers() {
 
 // --- 阶段顺序 ---
 const phaseInput = ref(recordStore.phaseOrder.join(','))
+const orphanPhases = ref([])
+const phaseMap = ref({})
+const phaseUsage = ref({})
+const newPhaseList = ref([])
+
+// 查找记录中使用但不在新顺序中的阶段
+function checkOrphans(newOrder) {
+  const used = {}
+  for (const r of recordStore.teamRecords) {
+    const p = r.phase
+    if (p && !newOrder.includes(p)) used[p] = (used[p] || 0) + 1
+  }
+  orphanPhases.value = Object.keys(used)
+  phaseUsage.value = used
+  phaseMap.value = {}
+  newPhaseList.value = newOrder
+  for (const p of orphanPhases.value) phaseMap.value[p] = ''
+}
+
+function applyPhaseMap() {
+  let updated = 0, deleted = 0
+  for (const r of recordStore.records) {
+    const old = r.phase
+    if (!old || !phaseMap.value[old]) continue
+    if (phaseMap.value[old] === '__delete__') {
+      recordStore.deleteRecord(r.id)
+      deleted++
+    } else {
+      recordStore.updateRecord(r.id, { phase: phaseMap.value[old] })
+      updated++
+    }
+  }
+  ElMessage.success(`已更新 ${updated} 条记录，删除 ${deleted} 条`)
+  orphanPhases.value = []
+}
 
 function savePhaseOrder() {
   const order = phaseInput.value
@@ -388,7 +434,8 @@ function savePhaseOrder() {
     return
   }
   recordStore.updatePhaseOrder(order)
-  ElMessage.success('阶段顺序已更新')
+  checkOrphans(order)
+  if (orphanPhases.value.length === 0) ElMessage.success('阶段顺序已更新')
 }
 
 function resetPhaseOrder() {
