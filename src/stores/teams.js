@@ -44,6 +44,27 @@ export const useTeamStore = defineStore('teams', () => {
   }
   migrateTeamDuties()
 
+  // 自动迁移：旧 phaseOrder 字段 → phaseOrders 字典
+  function migratePhaseOrders() {
+    let changed = false
+    for (const t of teams.value) {
+      if (!t.phaseOrders && t.phaseOrder) {
+        t.phaseOrders = {}
+        // 把旧的 phaseOrder 归到第一个 duty（或 _default）
+        const key = t.duties?.[0] || '_default'
+        t.phaseOrders[key] = [...t.phaseOrder]
+        delete t.phaseOrder
+        changed = true
+      }
+      if (!t.phaseOrders) {
+        t.phaseOrders = {}
+        changed = true
+      }
+    }
+    if (changed) persistTeams()
+  }
+  migratePhaseOrders()
+
   // 自动迁移：如果没有队伍但有队员/记录，创建默认队伍
   function ensureDefaultTeam() {
     if (teams.value.length > 0) return
@@ -99,30 +120,65 @@ export const useTeamStore = defineStore('teams', () => {
   const currentPhaseOrder = computed({
     get() {
       const t = currentTeam.value
-      return t?.phaseOrder || DEFAULT_PHASE_ORDER
+      if (!t) return [...DEFAULT_PHASE_ORDER]
+      const duty = currentDuty.value
+      // 1. 当前副本已有自定义阶段
+      if (duty && t.phaseOrders?.[duty]) {
+        return [...t.phaseOrders[duty]]
+      }
+      // 2. 当前副本有预定义阶段（尚未自定义）
+      if (duty && DUTY_PHASES[duty]) {
+        return [...DUTY_PHASES[duty]]
+      }
+      // 3. 旧版 phaseOrder 兜底
+      if (t.phaseOrder) {
+        return [...t.phaseOrder]
+      }
+      return [...DEFAULT_PHASE_ORDER]
     },
     set(val) {
       const t = teams.value.find(t => t.id === currentTeamId.value)
-      if (t) { t.phaseOrder = val; persistTeams() }
+      if (!t) return
+      if (!t.phaseOrders) t.phaseOrders = {}
+      const duty = currentDuty.value || '_default'
+      t.phaseOrders[duty] = [...val]
+      persistTeams()
     }
   })
 
   function setCurrentDuty(duty) {
     currentDuty.value = duty || ''
-    if (duty && DUTY_PHASES[duty]) {
+    if (duty) {
       const t = teams.value.find(t => t.id === currentTeamId.value)
-      if (t) { t.phaseOrder = [...DUTY_PHASES[duty]]; persistTeams() }
+      if (t) {
+        if (!t.phaseOrders) t.phaseOrders = {}
+        // 该副本没有自定义阶段时，自动用预定义初始化
+        if (!t.phaseOrders[duty] && DUTY_PHASES[duty]) {
+          t.phaseOrders[duty] = [...DUTY_PHASES[duty]]
+          persistTeams()
+        } else if (!t.phaseOrders[duty]) {
+          t.phaseOrders[duty] = [...DEFAULT_PHASE_ORDER]
+          persistTeams()
+        }
+      }
     }
   }
 
   function addTeam(name, duties = []) {
     if (!name.trim()) return null
     if (typeof duties === 'string') duties = duties ? [duties] : [] // backward compat
+    const phaseOrders = {}
+    for (const d of duties) {
+      phaseOrders[d] = getPhaseOrderForDuty(d)
+    }
+    if (duties.length === 0) {
+      phaseOrders._default = [...DEFAULT_PHASE_ORDER]
+    }
     const team = {
       id: generateId(),
       name: name.trim(),
       duties,
-      phaseOrder: getPhaseOrderForDuty(duties[0]),
+      phaseOrders,
       createdAt: new Date().toISOString()
     }
     teams.value.push(team)
@@ -145,7 +201,16 @@ export const useTeamStore = defineStore('teams', () => {
   function updateTeam(id, data) {
     const idx = teams.value.findIndex(t => t.id === id)
     if (idx !== -1) {
-      teams.value[idx] = { ...teams.value[idx], ...data }
+      const existing = teams.value[idx]
+      const newDuties = data.duties || existing.duties
+      // 合并 phaseOrders：保留已有副本的阶段，新增副本用默认值
+      const phaseOrders = { ...(existing.phaseOrders || {}) }
+      for (const d of newDuties) {
+        if (!phaseOrders[d]) {
+          phaseOrders[d] = getPhaseOrderForDuty(d)
+        }
+      }
+      teams.value[idx] = { ...existing, ...data, phaseOrders }
       persistTeams()
     }
   }
