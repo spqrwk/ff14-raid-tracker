@@ -48,8 +48,32 @@ export const useRecordStore = defineStore('records', () => {
     if (changed) { persist(); if (team.duties?.length) teamStore.persistTeams() }
   }
 
+  // 每次访问时兜底检查
+  let dutyRepairRan = false
+  function ensureAllRecordsHaveDuty() {
+    if (dutyRepairRan) return
+    const teamStore = useTeamStore()
+    const team = teamStore.currentTeam
+    if (!team) return
+    const teamDuties = team.duties?.length ? team.duties : (team.duty ? [team.duty] : [])
+    if (!teamDuties.length) return
+    let changed = false
+    for (const r of records.value) {
+      if (!r.duty) {
+        if (teamDuties.length === 1) { r.duty = teamDuties[0]; changed = true }
+        else {
+          const samePull = records.value.find(sr => sr.date === r.date && sr.pullNumber === r.pullNumber && sr.duty)
+          if (samePull) { r.duty = samePull.duty; changed = true }
+        }
+      }
+    }
+    if (changed) persist()
+    dutyRepairRan = true
+  }
+
   // 获取当前队伍的所有记录
   const teamRecords = computed(() => {
+    ensureAllRecordsHaveDuty()
     const teamStore = useTeamStore()
     const tid = teamStore.currentTeamId
     if (!tid) return records.value
@@ -178,6 +202,11 @@ export const useRecordStore = defineStore('records', () => {
     const tid = teamStore.currentTeamId
     const recordDate = date || new Date().toISOString().split('T')[0]
     const pullNumber = getCurrentPullNumber(recordDate)
+    // 未指定副本时从同把记录推断
+    if (!duty) {
+      const samePull = records.value.find(r => r.date === recordDate && r.pullNumber === pullNumber && r.duty)
+      if (samePull) duty = samePull.duty
+    }
 
     // 同一把最多一个进度记录：已存在则更新
     const existing = records.value.find(r => r.type === 'progress' && r.teamId === tid && r.date === recordDate && r.pullNumber === pullNumber)
@@ -225,29 +254,17 @@ export const useRecordStore = defineStore('records', () => {
     const tid = teamStore.currentTeamId
     const recordDate = date || new Date().toISOString().split('T')[0]
     const pullNumber = getCurrentPullNumber(recordDate)
+    const duty = records.value.find(r => r.date === recordDate && r.pullNumber === pullNumber && r.duty)?.duty || ''
 
-    // 添加通关进度记录（无论是否有犯错，无犯通关也可以记录）
     const progressRecord = {
-      id: generateId(),
-      type: 'progress',
-      teamId: tid,
-      date: recordDate,
-      pullNumber,
-      phase: '已完成',
-      notes: '本把通关！',
-      timestamp: new Date().toISOString()
+      id: generateId(), type: 'progress', teamId: tid, duty,
+      date: recordDate, pullNumber, phase: '已完成', notes: '本把通关！', timestamp: new Date().toISOString()
     }
     records.value.push(progressRecord)
 
-    // 结束本把
     records.value.push({
-      id: generateId(),
-      type: 'pull_end',
-      teamId: tid,
-      date: recordDate,
-      pullNumber,
-      phase: '',
-      timestamp: new Date().toISOString()
+      id: generateId(), type: 'pull_end', teamId: tid, duty,
+      date: recordDate, pullNumber, phase: '', timestamp: new Date().toISOString()
     })
     persist()
     return { pullNumber }
@@ -264,15 +281,12 @@ export const useRecordStore = defineStore('records', () => {
       r => r.date === recordDate && r.pullNumber === pullNumber && r.teamId === tid
     )
     if (todayRecords.length === 0) return null
+    const duty = todayRecords.find(r => r.duty)?.duty || ''
 
     const record = {
       id: generateId(),
-      type: 'pull_end',
-      teamId: tid,
-      date: recordDate,
-      pullNumber,
-      phase: '',
-      timestamp: new Date().toISOString()
+      type: 'pull_end', teamId: tid, duty,
+      date: recordDate, pullNumber, phase: '', timestamp: new Date().toISOString()
     }
     records.value.push(record)
     persist()
