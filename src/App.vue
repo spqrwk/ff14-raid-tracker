@@ -91,6 +91,21 @@
         <el-button type="primary" @click="dismissWelcome">知道了</el-button>
       </template>
     </el-dialog>
+
+    <!-- 更新日志 -->
+    <el-dialog v-model="showChangelog" :title="'📦 更新日志 v' + CURRENT_VERSION" :width="isMobile ? '90%' : '520px'" :close-on-click-modal="false">
+      <div class="changelog-content">
+        <div v-for="(items, ver) in CHANGELOG" :key="ver">
+          <div class="changelog-ver">v{{ ver }}</div>
+          <ul class="changelog-list">
+            <li v-for="(item, i) in items" :key="i">{{ item }}</li>
+          </ul>
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="dismissChangelog">知道了</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -127,8 +142,36 @@ function dismissWelcome() {
   showWelcome.value = false
   localStorage.setItem(WELCOME_KEY, '1')
 }
+
+// 更新日志
+const CURRENT_VERSION = '1.0.1'
+const CHANGELOG = {
+  '1.0.1': [
+    '新增 FFLogs 导入功能，支持批量拉取死亡事件并导入为犯错记录',
+    '新增 绝神兵 / 绝龙诗 / 妖星乱舞 默认分P阶段信息',
+    '新增队员上下场功能，请假玩家可在记录中隐藏',
+    '新增历史记录「按把次」视图，支持加精与展开详情',
+    '新增「使用帮助」页面，每个页面右上角有 📖 帮助链接',
+    '新增阶段顺序修改时的孤儿阶段映射迁移功能',
+    '新增罪无可恕 犯错等级',
+    '新增移动端适配（汉堡菜单+响应式布局）',
+    '全站深色主题覆盖更完整',
+    '导出导入支持完整 localStorage 数据（含 API Key、绑定关系等）',
+    '手动结束本把支持填写到达阶段，进度记录支持编辑',
+    '特别鸣谢：陆小唐@静语庄园'
+  ]
+}
+const LAST_VERSION_KEY = 'ff14_raid_last_seen_version'
+const showChangelog = ref(false)
+function dismissChangelog() {
+  showChangelog.value = false
+  localStorage.setItem(LAST_VERSION_KEY, CURRENT_VERSION)
+}
+
 onMounted(() => {
   if (!localStorage.getItem(WELCOME_KEY)) showWelcome.value = true
+  const lastVer = localStorage.getItem(LAST_VERSION_KEY)
+  if (lastVer !== CURRENT_VERSION) showChangelog.value = true
 })
 </script>
 
@@ -348,6 +391,11 @@ body {
 .welcome-content ul { padding-left: 16px; }
 .welcome-content li { margin-bottom: 6px; font-size: 14px; }
 .welcome-content strong { color: #ffd700; }
+
+.changelog-content { line-height: 1.8; color: #c0c0d0; }
+.changelog-ver { color: #ffd700; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.changelog-list { padding-left: 18px; margin-bottom: 8px; }
+.changelog-list li { margin-bottom: 4px; font-size: 14px; color: #a0a0b8; }
 
 .global-footer strong { color: #ffd700; }
 
