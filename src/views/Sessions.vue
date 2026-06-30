@@ -194,12 +194,14 @@ const endDate = computed(() => dateRange.value?.[1] || '2099-12-31')
 const teamStore = useTeamStore()
 onMounted(() => {
   const team = teamStore.currentTeam
-  if (!team?.duties?.length) return
+  if (!team) return
+  const teamDuties = team.duties?.length ? team.duties : (team.duty ? [team.duty] : [])
+  if (!teamDuties.length) return
   let changed = false
   for (const r of recordStore.records) {
     if (!r.duty) {
-      if (team.duties.length === 1) {
-        r.duty = team.duties[0]; changed = true
+      if (teamDuties.length === 1) {
+        r.duty = teamDuties[0]; changed = true
       } else {
         const samePull = recordStore.records.find(sr => sr.date === r.date && sr.pullNumber === r.pullNumber && sr.duty)
         if (samePull) { r.duty = samePull.duty; changed = true }

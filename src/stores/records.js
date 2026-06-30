@@ -25,13 +25,13 @@ export const useRecordStore = defineStore('records', () => {
       if (!r.teamId) { r.teamId = team.id; changed = true }
     }
     // 旧记录没有 duty：自动归属
-    if (team.duties?.length) {
+    const teamDuties = team.duties?.length ? team.duties : (team.duty ? [team.duty] : [])
+    if (teamDuties.length) {
       for (const r of records.value) {
         if (!r.duty) {
-          if (team.duties.length === 1) {
-            r.duty = team.duties[0]; changed = true
+          if (teamDuties.length === 1) {
+            r.duty = teamDuties[0]; changed = true
           } else {
-            // 多副本：从同 pull 的其他记录推断
             const samePull = records.value.find(sr => sr.date === r.date && sr.pullNumber === r.pullNumber && sr.duty)
             if (samePull) { r.duty = samePull.duty; changed = true }
           }
@@ -40,11 +40,12 @@ export const useRecordStore = defineStore('records', () => {
       // 从记录收集所有副本，补全到队伍
       const recordDuties = new Set()
       for (const r of records.value) { if (r.duty) recordDuties.add(r.duty) }
+      if (!team.duties) team.duties = []
       for (const d of recordDuties) {
         if (!team.duties.includes(d)) { team.duties.push(d); changed = true }
       }
     }
-    if (changed) persist()
+    if (changed) { persist(); if (team.duties?.length) teamStore.persistTeams() }
   }
 
   // 获取当前队伍的所有记录
