@@ -95,13 +95,14 @@ export const usePlayerStore = defineStore('players', () => {
     }
     recordStore.records = recordStore.records.filter(r => !toRemove.includes(r))
     for (const [, info] of pullsToFix) {
-      const remaining = recordStore.records.filter(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'mistake')
-      if (remaining.length === 0) {
-        // 已有进度记录则不重复添加
-        const hasProgress = recordStore.records.some(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'progress')
-        if (hasProgress) continue
+      // 该把没有结束记录且没有进度 → 补进度
+      const pullEnded = recordStore.records.some(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'pull_end')
+      const hasProgress = recordStore.records.some(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'progress')
+      if (!pullEnded && !hasProgress) {
+        // 取该把剩余记录中的最远阶段
+        const remaining = recordStore.records.filter(r => r.date === info.date && r.pullNumber === info.pullNumber)
+        const phase = [...info.records, ...remaining].map(r => r.phase).filter(Boolean).pop() || ''
         const firstRec = info.records[0]
-        const phase = firstRec?.phase || ''
         const levelMap = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }
         const levelText = levelMap[firstRec?.level] || firstRec?.level || ''
         recordStore.records.push({
