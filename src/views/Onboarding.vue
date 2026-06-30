@@ -24,6 +24,21 @@
           </el-menu-item>
         </el-menu>
         <div class="onboarding-sidebar-bottom">
+          <div class="menu-divider">FFLogs API</div>
+          <div class="sidebar-cred-row">
+            <el-input v-model="clientId" placeholder="Client ID" size="small" class="sidebar-cred-input" />
+          </div>
+          <div class="sidebar-cred-row">
+            <el-input v-model="clientSecret" placeholder="Client Secret" size="small" type="password" class="sidebar-cred-input" show-password />
+          </div>
+          <div class="sidebar-cred-row sidebar-cred-rate">
+            <span class="rate-badge-side" :class="{ warning: rateLimit && rateRemaining < 500, danger: rateLimit && rateRemaining < 100 }">
+              <template v-if="rateLimit">额度 {{ rateRemaining }}/{{ rateLimit.limitPerHour }}</template>
+              <template v-else-if="rateError">{{ rateError }}</template>
+              <template v-else-if="hasCredential">加载额度...</template>
+              <template v-else>未配置</template>
+            </span>
+          </div>
           <div class="menu-divider">数据</div>
           <div class="sidebar-import-link" @click="importVisible = true">
             <el-icon><Upload /></el-icon>
@@ -274,7 +289,11 @@ import { ref, reactive, computed, inject } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTeamStore, DUTY_PRESETS } from '../stores/teams'
 import { usePlayerStore, ROLES, ROLE_LABELS } from '../stores/players'
+import { useFflogsAuth } from '../composables/useFflogsAuth'
 import FflogsQuery from './FflogsQuery.vue'
+
+const auth = useFflogsAuth()
+const { clientId, clientSecret, rateLimit, rateRemaining, rateError, hasCredential } = auth
 
 const emit = defineEmits(['done'])
 
@@ -578,6 +597,12 @@ async function confirmPlayerImport() {
   color: #ffd700;
 }
 
+.sidebar-cred-row { padding: 3px 0; }
+.sidebar-cred-input :deep(.el-input__wrapper) { background: #141428 !important; box-shadow: 0 0 0 1px #2a2a4a inset !important; }
+.sidebar-cred-rate { padding-top: 6px; text-align: center; }
+.rate-badge-side { font-size: 11px; padding: 3px 8px; border-radius: 999px; background: #1a2a1a; color: #67c23a; font-weight: 600; display: inline-block; }
+.rate-badge-side.warning { background: #2a2510; color: #e6a23c; }
+.rate-badge-side.danger { background: #2a1015; color: #f56c6c; }
 .onboarding-sidebar-bottom .version-text {
   text-align: center;
   color: #404050;

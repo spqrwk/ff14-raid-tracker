@@ -497,6 +497,8 @@ async function executeClear() {
   playerStore.persist()
   recordStore.records.splice(0, recordStore.records.length)
   recordStore.persist()
+  // 清空 API 凭证
+  ;['ff14_fflogs_id', 'ff14_fflogs_secret', 'ff14_fflogs_manual_token', 'ff14_fflogs_bind_map'].forEach(k => localStorage.removeItem(k))
 
   clearStep.value = 0
   clearConfirmText.value = ''
