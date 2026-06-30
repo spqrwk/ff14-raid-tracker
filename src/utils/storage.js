@@ -46,30 +46,21 @@ export function loadPlayers() {
   return Array.isArray(data) ? data : []
 }
 
-export function savePlayers(players) {
-  if (!Array.isArray(players)) return
-  write(KEYS.PLAYERS, players)
-}
+export function savePlayers(players) { write(KEYS.PLAYERS, players) }
 
 export function loadRecords() {
   const data = read(KEYS.RECORDS, [])
   return Array.isArray(data) ? data : []
 }
 
-export function saveRecords(records) {
-  if (!Array.isArray(records)) return
-  write(KEYS.RECORDS, records)
-}
+export function saveRecords(records) { write(KEYS.RECORDS, records) }
 
 export function loadTeams() {
   const data = read(KEYS.TEAMS, [])
   return Array.isArray(data) ? data : []
 }
 
-export function saveTeams(teams) {
-  if (!Array.isArray(teams)) return
-  write(KEYS.TEAMS, teams)
-}
+export function saveTeams(teams) { write(KEYS.TEAMS, teams) }
 
 // --- Phase Order ---
 
