@@ -89,7 +89,7 @@
                 <template v-else>未配置</template>
               </span>
             </div>
-            <div class="version-text">v1.1.0</div>
+            <div class="version-text">v1.2.0</div>
           </div>
         </el-aside>
 
@@ -214,8 +214,18 @@ function dismissWelcome() {
 }
 
 // 更新日志
-const CURRENT_VERSION = '1.1.0'
+const CURRENT_VERSION = '1.2.0'
 const CHANGELOG = {
+  '1.2.0': [
+    '删除队员自动清理关联记录并补进度+结束标记，备注含阶段等级',
+    '记录进度默认结束本把，移除额外勾选',
+    '开荒面板移除队伍切换器，统一到队伍管理',
+    '修复 localStorage 双重 JSON 编码导致数据损坏',
+    '修复加精功能因双重编码点击无反应',
+    '存储容量显示 + 凭证去引号 + 导入时补全队伍副本',
+    '纯进度记录也能显示所属副本',
+    '数据统计仅显示上场队员'
+  ],
   '1.1.0': [
     '队伍支持多副本，记录分副本标记，分P信息按副本独立',
     '新增 FFLogs 查询工具（进度统计 + 初通队友对比）',

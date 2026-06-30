@@ -44,7 +44,7 @@
             <el-icon><Upload /></el-icon>
             <span>已有备份？导入数据</span>
           </div>
-          <div class="version-text">v1.1.0</div>
+          <div class="version-text">v1.2.0</div>
         </div>
       </el-aside>
 
