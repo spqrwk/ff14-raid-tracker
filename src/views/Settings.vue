@@ -108,10 +108,10 @@
         </div>
       </template>
       <p class="desc">用逗号分隔，顺序决定折线图 Y 轴排列。</p>
-      <div class="phase-input-row" style="margin-bottom:8px">
-        <el-select v-model="phaseEditDuty" placeholder="选择副本（可选）" clearable size="small" style="width:200px" @change="onPhaseEditDutyChange">
-          <el-option v-for="d in (currentTeam?.duties || [])" :key="d" :label="d" :value="d" />
-        </el-select>
+      <div v-if="phaseTabs.length > 0" class="phase-tabs-wrap">
+        <el-tabs v-model="phaseEditDuty" @tab-change="onPhaseEditDutyChange">
+          <el-tab-pane v-for="d in phaseTabs" :key="d" :label="d" :name="d" />
+        </el-tabs>
       </div>
       <div class="phase-input-row">
         <el-input v-model="phaseInput" placeholder="P1,P1.5,P2,P2.5,..." style="flex:1"/>
@@ -183,7 +183,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePlayerStore } from '../stores/players'
 import { useRecordStore } from '../stores/records'
@@ -423,15 +423,31 @@ function handleImportPlayers() {
 }
 
 // --- 阶段顺序 ---
-const phaseEditDuty = ref('')
-const phaseInput = ref(recordStore.phaseOrder.join(','))
 const currentTeam = computed(() => teamStore.currentTeam)
-function onPhaseEditDutyChange(duty) {
+const phaseTabs = computed(() => currentTeam.value?.duties?.length ? currentTeam.value.duties : ['默认'])
+const phaseEditDuty = ref(phaseTabs.value[0] || '')
+
+function loadPhaseForDuty(duty) {
   if (duty) {
-    phaseInput.value = teamStore.getPhaseOrderForDuty(duty).join(',')
+    const t = currentTeam.value
+    const saved = t?.phaseOrders?.[duty]
+    phaseInput.value = (saved || teamStore.getPhaseOrderForDuty(duty)).join(',')
   } else {
     phaseInput.value = recordStore.phaseOrder.join(',')
   }
+}
+const phaseInput = ref('')
+// 初始加载
+loadPhaseForDuty(phaseEditDuty.value)
+
+// 队伍切换时重置到第一个 tab
+watch(currentTeam, () => {
+  phaseEditDuty.value = phaseTabs.value[0] || ''
+  loadPhaseForDuty(phaseEditDuty.value)
+})
+
+function onPhaseEditDutyChange(duty) {
+  loadPhaseForDuty(duty)
 }
 const orphanPhases = ref([])
 const phaseMap = ref({})
@@ -478,7 +494,7 @@ function savePhaseOrder() {
     ElMessage.error('请至少输入一个阶段')
     return
   }
-  recordStore.updatePhaseOrder(order)
+  teamStore.setPhaseOrderForDuty(phaseEditDuty.value, order)
   checkOrphans(order)
   if (orphanPhases.value.length === 0) ElMessage.success('阶段顺序已更新')
 }
@@ -487,7 +503,7 @@ function resetPhaseOrder() {
   if (phaseEditDuty.value) {
     phaseInput.value = teamStore.getPhaseOrderForDuty(phaseEditDuty.value).join(',')
   } else {
-    phaseInput.value = teamStore.DEFAULT_PHASE_ORDER.join(',')
+    phaseInput.value = [...teamStore.DEFAULT_PHASE_ORDER].join(',')
   }
   ElMessage.success('已恢复默认阶段顺序')
 }
@@ -535,6 +551,8 @@ async function executeClear() {
 .backup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .backup-item h4 { color: #c0c0d0; margin-bottom: 8px; }
 .backup-item p.desc { min-height: 36px; }
+.phase-tabs-wrap { margin-bottom: 8px; }
+.phase-tabs-wrap :deep(.el-tabs__header) { margin-bottom: 0; }
 .phase-input-row { display: flex; gap: 10px; }
 .danger-card { border-color: rgba(245, 108, 108, 0.3) !important; }
 .danger-card :deep(.el-card__header) { border-bottom-color: rgba(245, 108, 108, 0.2) !important; }

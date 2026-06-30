@@ -85,9 +85,10 @@ export const useRecordStore = defineStore('records', () => {
     if (!phase) return 0
     const idx = phaseOrder.value.indexOf(phase)
     if (idx !== -1) return idx + 1
-    const match = String(phase).match(/^P(\d+(?:\.\d+)?)$/i)
+    // 宽松匹配：提取阶段中的 P 编号，如 "P1风圈前" → 1, "P2火神柱" → 2
+    const match = String(phase).match(/^P(\d+(?:\.\d+)?)/i)
     if (match) return parseFloat(match[1])
-    return phaseOrder.value.length + 100
+    return 0
   }
 
   function getPhaseLabel(value) {
@@ -341,16 +342,22 @@ export const useRecordStore = defineStore('records', () => {
     return result
   }
 
-  // --- 开荒进度数据（当前队伍） ---
+  // --- 开荒进度数据（当前队伍，按当前副本过滤） ---
   function getProgressionData(startDate, endDate) {
-    const tid = useTeamStore().currentTeamId
+    const teamStore = useTeamStore()
+    const tid = teamStore.currentTeamId
+    const duty = teamStore.currentDuty
+    const phaseList = teamStore.currentPhaseOrder
+    console.log('[getProgressionData] currentDuty:', duty, 'phaseOrder:', phaseList)
     const filtered = records.value.filter(r => {
       if (r.type === 'pull_end') return false
       if (r.teamId !== tid) return false
+      if (duty && r.duty && r.duty !== duty) return false
       if (startDate && r.date < startDate) return false
       if (endDate && r.date > endDate) return false
       return true
     })
+    console.log('[getProgressionData] filtered records:', filtered.length, 'duty:', duty)
     const pullMap = new Map()
     for (const r of filtered) {
       const key = `${r.date}||${r.pullNumber}`

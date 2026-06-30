@@ -146,6 +146,15 @@ export const useTeamStore = defineStore('teams', () => {
     }
   })
 
+  function setPhaseOrderForDuty(duty, order) {
+    const t = teams.value.find(t => t.id === currentTeamId.value)
+    if (!t) return
+    if (!t.phaseOrders) t.phaseOrders = {}
+    const key = duty || '_default'
+    t.phaseOrders[key] = [...order]
+    persistTeams()
+  }
+
   function setCurrentDuty(duty) {
     currentDuty.value = duty || ''
     if (duty) {
@@ -249,6 +258,7 @@ export const useTeamStore = defineStore('teams', () => {
     updateTeam,
     setCurrentTeam,
     setCurrentDuty,
+    setPhaseOrderForDuty,
     getPhaseOrderForDuty,
     migrateTeamDuties,
     ensureDefaultTeam,
