@@ -451,10 +451,15 @@ export const useRecordStore = defineStore('records', () => {
   const starredPulls = ref(loadStarred())
 
   function loadStarred() {
-    try { return JSON.parse(localStorage.getItem(STARRED_KEY) || '[]') } catch { return [] }
+    try {
+      let data = JSON.parse(localStorage.getItem(STARRED_KEY) || '[]')
+      if (typeof data === 'string' && data.startsWith('[')) data = JSON.parse(data)
+      return Array.isArray(data) ? data : []
+    } catch { return [] }
   }
   function saveStarred() {
-    localStorage.setItem(STARRED_KEY, JSON.stringify(starredPulls.value))
+    const val = JSON.stringify(starredPulls.value)
+    localStorage.setItem(STARRED_KEY, val.startsWith('"') && val.endsWith('"') ? val : val)
   }
 
   function toggleStar(date, pullNumber) {
