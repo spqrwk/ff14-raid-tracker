@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { loadPlayers, savePlayers, generateId } from '../utils/storage'
 import { useTeamStore } from './teams'
+import { useRecordStore } from './records'
 
 // 固定队 8 个位置
 export const ROLES = ['MT', 'ST', 'H1', 'H2', 'D1', 'D2', 'D3', 'D4']
@@ -78,7 +79,36 @@ export const usePlayerStore = defineStore('players', () => {
 
   // 删除成员
   function removePlayer(id) {
+    const player = players.value.find(p => p.id === id)
+    const playerName = player?.name || '未知'
     players.value = players.value.filter(p => p.id !== id)
+    const recordStore = useRecordStore()
+    const pullsToFix = new Map()
+    const toRemove = []
+    for (const r of recordStore.records) {
+      if (r.playerId === id && r.type === 'mistake') {
+        const key = `${r.date}||${r.pullNumber}`
+        if (!pullsToFix.has(key)) pullsToFix.set(key, { date: r.date, pullNumber: r.pullNumber, records: [] })
+        pullsToFix.get(key).records.push(r)
+        toRemove.push(r)
+      }
+    }
+    recordStore.records = recordStore.records.filter(r => !toRemove.includes(r))
+    for (const [, info] of pullsToFix) {
+      const remaining = recordStore.records.filter(r => r.date === info.date && r.pullNumber === info.pullNumber && r.type === 'mistake')
+      if (remaining.length === 0) {
+        const phase = info.records.find(r => r.phase)?.phase || ''
+        recordStore.records.push({
+          id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
+          type: 'progress', teamId: recordStore.records[0]?.teamId || '',
+          duty: info.records.find(r => r.duty)?.duty || '',
+          date: info.date, pullNumber: info.pullNumber, phase,
+          notes: `${playerName} 被删除，仅保留进度`,
+          timestamp: new Date().toISOString()
+        })
+      }
+    }
+    recordStore.persist()
     persist()
   }
 
