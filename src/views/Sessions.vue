@@ -172,6 +172,7 @@ import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRecordStore } from '../stores/records'
 import { usePlayerStore } from '../stores/players'
+import { useTeamStore } from '../stores/teams'
 
 const recordStore = useRecordStore()
 const playerStore = usePlayerStore()
