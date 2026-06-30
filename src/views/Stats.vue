@@ -335,6 +335,9 @@ const endDate = computed(() => dateRange.value?.[1] || '2099-12-31')
 // --- 队员统计 ---
 const playerStats = computed(() => {
   let stats = recordStore.getPlayerMistakeStats(startDate.value, endDate.value, filterDuty.value || undefined)
+  // 仅显示上场队员
+  const activeIds = new Set(playerStore.activeTeamPlayers.map(p => p.id))
+  stats = stats.filter(s => activeIds.has(s.playerId))
   if (filterPlayerId.value) {
     stats = stats.filter(s => s.playerId === filterPlayerId.value)
   }
@@ -556,7 +559,11 @@ const progressionChartOption = computed(() => {
 
 // --- 犯错等级分布饼图 ---
 // 犯错分布不区分副本，使用全量数据
-const allPlayerStats = computed(() => recordStore.getPlayerMistakeStats(startDate.value, endDate.value))
+const allPlayerStats = computed(() => {
+  const stats = recordStore.getPlayerMistakeStats(startDate.value, endDate.value)
+  const activeIds = new Set(playerStore.activeTeamPlayers.map(p => p.id))
+  return stats.filter(s => activeIds.has(s.playerId))
+})
 
 const levelDistData = computed(() => {
   const stats = allPlayerStats.value
