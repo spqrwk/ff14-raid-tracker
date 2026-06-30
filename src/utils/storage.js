@@ -14,7 +14,13 @@ const KEYS = {
 function read(key, defaultValue = null) {
   try {
     const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : defaultValue
+    if (!raw) return defaultValue
+    let parsed = JSON.parse(raw)
+    // 修复双重编码：如果解析结果仍是 JSON 字符串，再解一层
+    if (typeof parsed === 'string' && (parsed.startsWith('[') || parsed.startsWith('{'))) {
+      try { parsed = JSON.parse(parsed) } catch {}
+    }
+    return parsed
   } catch (e) {
     console.error(`读取 ${key} 失败:`, e)
     return defaultValue
@@ -23,7 +29,12 @@ function read(key, defaultValue = null) {
 
 function write(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    // 防止双重编码：value 已经是字符串且像 JSON 时不再 stringify
+    if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
+      localStorage.setItem(key, value)
+    } else {
+      localStorage.setItem(key, JSON.stringify(value))
+    }
   } catch (e) {
     console.error(`写入 ${key} 失败:`, e)
   }
@@ -41,11 +52,25 @@ export function saveCurrentTeamId(id) {
 
 // --- Players ---
 
-export function loadPlayers() { return read(KEYS.PLAYERS, []) }
+export function loadPlayers() {
+  const data = read(KEYS.PLAYERS, [])
+  return Array.isArray(data) ? data : []
+}
+
 export function savePlayers(players) { write(KEYS.PLAYERS, players) }
-export function loadRecords() { return read(KEYS.RECORDS, []) }
+
+export function loadRecords() {
+  const data = read(KEYS.RECORDS, [])
+  return Array.isArray(data) ? data : []
+}
+
 export function saveRecords(records) { write(KEYS.RECORDS, records) }
-export function loadTeams() { return read(KEYS.TEAMS, []) }
+
+export function loadTeams() {
+  const data = read(KEYS.TEAMS, [])
+  return Array.isArray(data) ? data : []
+}
+
 export function saveTeams(teams) { write(KEYS.TEAMS, teams) }
 
 // --- Phase Order ---
