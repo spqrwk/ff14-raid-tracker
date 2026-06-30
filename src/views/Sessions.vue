@@ -168,7 +168,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRecordStore } from '../stores/records'
 import { usePlayerStore } from '../stores/players'
@@ -189,28 +189,24 @@ const startDate = computed(() => dateRange.value?.[0] || '2000-01-01')
 const endDate = computed(() => dateRange.value?.[1] || '2099-12-31')
 
 // --- 筛选后的记录 ---
-// 自动修复缺少 duty 的旧记录
+// 自动修复缺少 duty 的旧记录（延迟到组件挂载后执行）
 const teamStore = useTeamStore()
-function repairMissingDuties() {
+onMounted(() => {
   const team = teamStore.currentTeam
   if (!team?.duties?.length) return
   let changed = false
   for (const r of recordStore.records) {
     if (!r.duty) {
-      // 如果队伍只有一个副本，直接用；否则尝试从同 pull 的其他记录推断
       if (team.duties.length === 1) {
-        r.duty = team.duties[0]
-        changed = true
+        r.duty = team.duties[0]; changed = true
       } else {
-        // 多副本：从同 pull 的其他记录推断
         const samePull = recordStore.records.find(sr => sr.date === r.date && sr.pullNumber === r.pullNumber && sr.duty)
         if (samePull) { r.duty = samePull.duty; changed = true }
       }
     }
   }
   if (changed) recordStore.persist()
-}
-repairMissingDuties()
+})
 
 const filteredRecords = computed(() => {
   let records = recordStore.getRecordsByDateRange(startDate.value, endDate.value)
