@@ -220,12 +220,6 @@
             </el-row>
 
             <el-form-item>
-              <el-checkbox v-model="progressForm.endPull">
-                记录后结束本把 (下一把 +1)
-              </el-checkbox>
-            </el-form-item>
-
-            <el-form-item>
               <el-button type="success" size="large" @click="submitProgress" :loading="submitting">
                 <el-icon><Check /></el-icon>
                 记录进度
@@ -591,8 +585,7 @@ const progressFormRef = ref(null)
 
 const progressForm = reactive({
   phase: '',
-  notes: '',
-  endPull: false
+  notes: ''
 })
 
 const progressRules = {
@@ -608,7 +601,7 @@ function submitProgress() {
         duty: currentDuty.value,
         phase: progressForm.phase,
         notes: progressForm.notes,
-        endPull: progressForm.endPull,
+        endPull: true,
         date: today.value
       })
 
@@ -619,7 +612,6 @@ function submitProgress() {
 
       progressForm.phase = ''
       progressForm.notes = ''
-      progressForm.endPull = false
     } catch (e) {
       ElMessage.error(e.message || '记录失败')
     } finally {
