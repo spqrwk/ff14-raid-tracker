@@ -261,7 +261,9 @@ const pullList = computed(() => {
     for (const r of pullRecords) {
       if (r.playerName) playerSet.add(r.playerName)
     }
-    const duty = pullRecords.find(r => r.duty)?.duty || ''
+    // 从该把任意记录找 duty（包括进度记录）
+    const allPull = filteredRecords.value.filter(r => r.date === pull.date && r.pullNumber === pull.pullNumber)
+    const duty = allPull.find(r => r.duty)?.duty || ''
     return {
       ...pull,
       duty,
