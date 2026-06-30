@@ -13,10 +13,16 @@ const KEYS = {
 
 function read(key, defaultValue = null) {
   try {
-    const raw = localStorage.getItem(key)
+    let raw = localStorage.getItem(key)
     if (!raw) return defaultValue
+    // gzip 解压
+    if (raw.startsWith('!GZ!') && typeof pako !== 'undefined') {
+      try {
+        const bin = Uint8Array.from(atob(raw.slice(4)), c => c.charCodeAt(0))
+        raw = new TextDecoder().decode(pako.inflate(bin))
+      } catch { /* fall through */ }
+    }
     let parsed = JSON.parse(raw)
-    // 修复双重编码：如果解析结果仍是 JSON 字符串，再解一层
     if (typeof parsed === 'string' && (parsed.startsWith('[') || parsed.startsWith('{'))) {
       try { parsed = JSON.parse(parsed) } catch {}
     }
@@ -29,12 +35,18 @@ function read(key, defaultValue = null) {
 
 function write(key, value) {
   try {
-    // 防止双重编码：value 已经是字符串且像 JSON 时不再 stringify
-    if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
-      localStorage.setItem(key, value)
-    } else {
-      localStorage.setItem(key, JSON.stringify(value))
+    const str = (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{')))
+      ? value : JSON.stringify(value)
+    // 超过 50KB 时尝试 gzip 压缩（需 pako 依赖）
+    if (str.length > 50000 && typeof pako !== 'undefined') {
+      try {
+        const bin = new TextEncoder().encode(str)
+        const deflated = pako.deflate(bin)
+        localStorage.setItem(key, '!GZ!' + btoa(String.fromCharCode(...new Uint8Array(deflated))))
+        return
+      } catch {}
     }
+    localStorage.setItem(key, str)
   } catch (e) {
     console.error(`写入 ${key} 失败:`, e)
   }
