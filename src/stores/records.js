@@ -494,6 +494,7 @@ export const useRecordStore = defineStore('records', () => {
     starredPulls,
     toggleStar,
     isStarred,
+    persist,
     getTeamPullCount,
     getTeamRecordCounts,
     migrateIfNeeded,
