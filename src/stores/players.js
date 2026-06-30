@@ -97,40 +97,29 @@ export const usePlayerStore = defineStore('players', () => {
     for (const [, info] of pullsToFix) {
       const remaining = recordStore.records.filter(r => r.date === info.date && r.pullNumber === info.pullNumber)
       const hasPullEnd = remaining.some(r => r.type === 'pull_end')
-      const hasMistake = remaining.some(r => r.type === 'mistake')
-      if (!hasPullEnd && !hasMistake) {
-        // 该把没有结束标记且没有犯错了 → 补进度 + 结束
-        const phase = [...info.records, ...remaining].map(r => r.phase).filter(Boolean).pop() || ''
-        const firstRec = info.records[0]
-        const levelMap = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }
-        const levelText = levelMap[firstRec?.level] || firstRec?.level || ''
-        const duty = info.records.find(r => r.duty)?.duty || remaining.find(r => r.duty)?.duty || ''
-        const tid = remaining[0]?.teamId || info.records[0]?.teamId || ''
+      // 取删除前后所有记录的最远阶段
+      const allPhases = [...info.records, ...remaining].map(r => r.phase).filter(Boolean)
+      const furthestPhase = allPhases.pop() || ''
+      // 被删记录中是否有包含最远阶段的
+      const deletedHadFurthest = info.records.some(r => r.phase === furthestPhase && r.phase)
+      const firstRec = info.records[0]
+      const levelMap = { death:'减员', wipe:'团灭', enrage:'狂暴', unforgivable:'罪无可恕', equipment:'设备故障' }
+      const levelText = levelMap[firstRec?.level] || firstRec?.level || ''
+      const duty = info.records.find(r => r.duty)?.duty || remaining.find(r => r.duty)?.duty || ''
+      const tid = remaining[0]?.teamId || info.records[0]?.teamId || ''
+
+      if (deletedHadFurthest && furthestPhase) {
+        // 删除的记录是最远阶段 → 补一条进度
         recordStore.records.push({
           id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
           type: 'progress', teamId: tid, duty,
-          date: info.date, pullNumber: info.pullNumber, phase,
-          notes: `${playerName} ${phase}-${levelText} 已删除`,
+          date: info.date, pullNumber: info.pullNumber, phase: furthestPhase,
+          notes: `${playerName} ${furthestPhase}-${levelText} 已删除`,
           timestamp: new Date().toISOString()
         })
-        recordStore.records.push({
-          id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
-          type: 'pull_end', teamId: tid, duty,
-          date: info.date, pullNumber: info.pullNumber, phase: '',
-          timestamp: new Date().toISOString()
-        })
-      } else if (!hasPullEnd && hasMistake) {
-        // 还有犯错但没结束标记 → 补进度 + 结束
-        const phase = [...info.records, ...remaining].map(r => r.phase).filter(Boolean).pop() || ''
-        const duty = remaining.find(r => r.duty)?.duty || info.records.find(r => r.duty)?.duty || ''
-        const tid = remaining[0]?.teamId || info.records[0]?.teamId || ''
-        recordStore.records.push({
-          id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
-          type: 'progress', teamId: tid, duty,
-          date: info.date, pullNumber: info.pullNumber, phase,
-          notes: `${playerName} 记录已删除`,
-          timestamp: new Date().toISOString()
-        })
+      }
+      if (!hasPullEnd) {
+        // 没有结束标记 → 补一条
         recordStore.records.push({
           id: 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8),
           type: 'pull_end', teamId: tid, duty,
