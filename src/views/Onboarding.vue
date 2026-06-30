@@ -433,6 +433,14 @@ async function confirmImport() {
     playerStore.players.splice(0, playerStore.players.length, ...data.players)
     playerStore.persist()
     recordStore.records.splice(0, recordStore.records.length, ...data.records)
+    const recordDuties = new Set()
+    for (const r of recordStore.records) { if (r.duty) recordDuties.add(r.duty) }
+    const team = teamStore.teams[0]
+    if (team) {
+      let c = false
+      for (const d of recordDuties) { if (!team.duties.includes(d)) { team.duties.push(d); c = true } }
+      if (c) teamStore.persistTeams()
+    }
     recordStore.persist()
     if (data.currentTeamId) teamStore.setCurrentTeam(data.currentTeamId)
     if (data.allStorage) {

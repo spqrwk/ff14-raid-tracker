@@ -286,11 +286,20 @@ function handleImport() {
     teamStore.migrateTeamDuties()
     teamStore.persistTeams()
   }
-  // 覆盖队员
   playerStore.players.splice(0, playerStore.players.length, ...importData.value.players)
   playerStore.persist()
-  // 覆盖记录
   recordStore.records.splice(0, recordStore.records.length, ...importData.value.records)
+  // 从记录中收集所有出现过的副本，补全到队伍的 duties 中
+  const recordDuties = new Set()
+  for (const r of recordStore.records) { if (r.duty) recordDuties.add(r.duty) }
+  const team = teamStore.currentTeam
+  if (team) {
+    let changed = false
+    for (const d of recordDuties) {
+      if (!team.duties.includes(d)) { team.duties.push(d); changed = true }
+    }
+    if (changed) teamStore.persistTeams()
+  }
   recordStore.persist()
   // 阶段顺序
   if (importData.value.phaseOrder) {
