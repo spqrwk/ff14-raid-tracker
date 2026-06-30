@@ -1,5 +1,10 @@
 <template>
   <div id="app-container">
+    <!-- 右上角更新日志按钮 -->
+    <div class="changelog-btn" @click="showChangelog = true">
+      <el-icon :size="18"><Bell /></el-icon>
+    </div>
+
     <!-- ========== 无队伍时：显示初始化引导 ========== -->
     <Onboarding v-if="showOnboarding" @done="onOnboardingDone" />
 
@@ -135,7 +140,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, provide } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useTeamStore } from './stores/teams'
@@ -241,15 +246,25 @@ const CHANGELOG = {
 }
 const LAST_VERSION_KEY = 'ff14_raid_last_seen_version'
 const showChangelog = ref(false)
+function checkChangelog() {
+  const lastVer = localStorage.getItem(LAST_VERSION_KEY)
+  if (lastVer !== CURRENT_VERSION) showChangelog.value = true
+}
+provide('checkChangelog', checkChangelog)
+provide('updateLastVersion', updateLastVersion)
 function dismissChangelog() {
   showChangelog.value = false
   localStorage.setItem(LAST_VERSION_KEY, CURRENT_VERSION)
 }
+// 导入数据后更新版本记录（取最新）
+function updateLastVersion(importedVer) {
+  const current = localStorage.getItem(LAST_VERSION_KEY)
+  if (!current || importedVer > current) localStorage.setItem(LAST_VERSION_KEY, importedVer)
+}
 
 onMounted(() => {
   if (!localStorage.getItem(WELCOME_KEY)) showWelcome.value = true
-  const lastVer = localStorage.getItem(LAST_VERSION_KEY)
-  if (lastVer !== CURRENT_VERSION) showChangelog.value = true
+  checkChangelog()
   updateShowOnboarding()
 })
 </script>
@@ -266,6 +281,15 @@ body {
 #app-container { min-height: 100vh; }
 
 /* 移动端汉堡按钮 */
+.changelog-btn {
+  position: fixed; top: 10px; right: 12px; z-index: 1001;
+  width: 36px; height: 36px;
+  background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: #808090; cursor: pointer; transition: color .15s;
+}
+.changelog-btn:hover { color: #ffd700; }
+
 .mobile-toggle {
   display: none;
   position: fixed; top: 10px; left: 10px; z-index: 1000;

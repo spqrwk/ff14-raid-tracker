@@ -270,7 +270,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, inject } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTeamStore, DUTY_PRESETS } from '../stores/teams'
 import { usePlayerStore, ROLES, ROLE_LABELS } from '../stores/players'
@@ -280,6 +280,8 @@ const emit = defineEmits(['done'])
 
 const teamStore = useTeamStore()
 const playerStore = usePlayerStore()
+const checkChangelog = inject('checkChangelog', () => {})
+const updateLastVersion = inject('updateLastVersion', () => {})
 const importFileRef = ref(null)
 const playerFileRef = ref(null)
 const importData = ref(null)
@@ -449,6 +451,8 @@ async function confirmImport() {
       }
     }
     ElMessage.success(`导入完成：${importMeta.value.teams}队 ${importMeta.value.players}人 ${importMeta.value.records}条`)
+    if (data.lastSeenVersion) updateLastVersion(data.lastSeenVersion)
+    checkChangelog()
     importVisible.value = false
     if (teamStore.teams.length > 0) emit('done')
   } catch (e) {

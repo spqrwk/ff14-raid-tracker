@@ -16,9 +16,18 @@ let _instance = null
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
 function createAuth() {
-  const clientId = ref(localStorage.getItem(K_ID) || '')
-  const clientSecret = ref(localStorage.getItem(K_SEC) || '')
-  const manualToken = ref(localStorage.getItem(K_TOKEN) || '')
+  // 处理可能被双重编码的值
+  function cleanValue(raw) {
+    if (!raw) return ''
+    let v = raw.trim()
+    if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+      v = v.slice(1, -1)
+    }
+    return v
+  }
+  const clientId = ref(cleanValue(localStorage.getItem(K_ID)))
+  const clientSecret = ref(cleanValue(localStorage.getItem(K_SEC)))
+  const manualToken = ref(cleanValue(localStorage.getItem(K_TOKEN)))
   const rateLimit = ref(null)
   const rateError = ref('')
   let token = manualToken.value || ''
