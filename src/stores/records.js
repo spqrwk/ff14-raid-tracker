@@ -176,6 +176,19 @@ export const useRecordStore = defineStore('records', () => {
     const recordDate = date || new Date().toISOString().split('T')[0]
     const pullNumber = getCurrentPullNumber(recordDate)
 
+    // 同一把最多一个进度记录：已存在则更新
+    const existing = records.value.find(r => r.type === 'progress' && r.teamId === tid && r.date === recordDate && r.pullNumber === pullNumber)
+    if (existing) {
+      existing.phase = phase
+      existing.notes = notes || existing.notes
+      existing.timestamp = new Date().toISOString()
+      if (endPull) {
+        records.value.push({ id: generateId(), type: 'pull_end', teamId: tid, date: recordDate, pullNumber, phase: '', timestamp: new Date().toISOString() })
+      }
+      persist()
+      return existing
+    }
+
     const record = {
       id: generateId(),
       type: 'progress',
