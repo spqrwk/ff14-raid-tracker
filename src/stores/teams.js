@@ -109,6 +109,10 @@ export const useTeamStore = defineStore('teams', () => {
 
   function setCurrentDuty(duty) {
     currentDuty.value = duty || ''
+    if (duty && DUTY_PHASES[duty]) {
+      const t = teams.value.find(t => t.id === currentTeamId.value)
+      if (t) { t.phaseOrder = [...DUTY_PHASES[duty]]; persistTeams() }
+    }
   }
 
   function addTeam(name, duties = []) {
