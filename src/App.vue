@@ -60,7 +60,7 @@
           <div class="author-item"><el-icon><UserFilled /></el-icon><span><a href="https://ifdian.net/a/luochenchen123" target="_blank" style="color:#ffd700;text-decoration:none">洛辰辰@海猫茶屋</a></span></div>
           <div class="menu-divider">特别鸣谢</div>
           <div class="author-item" style="cursor:pointer" @click="showThanks"><el-icon><UserFilled /></el-icon><span style="color:#ffd700">陆小唐@静语庄园</span></div>
-          <div class="version-text">v1.0.1 (beta)</div>
+          <div class="version-text">v1.0.2 (beta)</div>
         </div>
       </el-aside>
 
@@ -144,8 +144,13 @@ function dismissWelcome() {
 }
 
 // 更新日志
-const CURRENT_VERSION = '1.0.1'
+const CURRENT_VERSION = '1.0.2'
 const CHANGELOG = {
+  '1.0.2': [
+    '手动结束本把支持下拉选择到达阶段',
+    '无团灭级错误的 Pull 可点击编辑到达进度',
+    '进度记录和犯错记录均支持编辑修改'
+  ],
   '1.0.1': [
     '新增 FFLogs 导入功能，支持批量拉取死亡事件并导入为犯错记录',
     '新增 绝神兵 / 绝龙诗 / 妖星乱舞 默认分P阶段信息',

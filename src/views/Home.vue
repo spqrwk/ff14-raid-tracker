@@ -267,6 +267,9 @@
               </el-tag>
               <span v-if="pull.maxPhase" class="pull-phase">
                 最远到 <strong>{{ pull.maxPhase }}</strong>
+                <el-button v-if="!hasFatal(pull)" type="primary" link size="small" style="margin-left:4px" @click="editPullPhase(pull)">
+                  <el-icon><Edit /></el-icon>
+                </el-button>
               </span>
               <span v-if="pull.ended" class="pull-ended-tag">已结束</span>
               <span v-else class="pull-active-tag">进行中</span>
@@ -363,6 +366,36 @@
       <template #footer>
         <el-button @click="editVisible = false">取消</el-button>
         <el-button type="primary" @click="handleEditSave">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 手动结束弹窗 -->
+    <el-dialog v-model="endPullVisible" title="手动结束第 {{ currentPull }} 把" width="380px" destroy-on-close>
+      <el-form label-position="top">
+        <el-form-item label="本把到达了哪个阶段（选填）">
+          <el-select v-model="endPullPhase" filterable allow-create style="width:100%" placeholder="不填仅结束本把">
+            <el-option v-for="p in selectablePhases" :key="p" :label="p" :value="p"/>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="endPullVisible = false">取消</el-button>
+        <el-button type="warning" @click="confirmEndPull">结束本把</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 修改进度弹窗 -->
+    <el-dialog v-model="editPhaseVisible" title="修改第 {{ editPhasePullNum }} 把进度" width="380px" destroy-on-close>
+      <el-form label-position="top">
+        <el-form-item label="到达阶段">
+          <el-select v-model="editPhaseVal" filterable allow-create style="width:100%">
+            <el-option v-for="p in selectablePhases" :key="p" :label="p" :value="p"/>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="editPhaseVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmEditPhase">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -575,26 +608,55 @@ function submitProgress() {
 }
 
 // --- 手动结束本把 ---
-async function handleEndPull() {
-  const pullNum = currentPull.value
-  const dayRecords = recordStore.getRecordsByDate(today.value).filter(r => r.pullNumber === pullNum && r.type !== 'pull_end')
-  const defaultPhase = dayRecords.length > 0 ? (dayRecords.find(r => r.phase)?.phase || '') : ''
+const endPullVisible = ref(false)
+const endPullPhase = ref('')
 
-  try {
-    const { value: phase } = await ElMessageBox.prompt('请输入本把到达的阶段', '手动结束第 ' + pullNum + ' 把', {
-      confirmButtonText: '结束本把',
-      cancelButtonText: '取消',
-      inputValue: defaultPhase,
-      inputPlaceholder: 'P几（选填）'
-    })
-    const result = recordStore.endCurrentPull(today.value)
-    if (result && phase) {
-      recordStore.addProgress({ phase, notes: '手动结束', date: today.value, endPull: false })
+function handleEndPull() {
+  const dayRecords = recordStore.getRecordsByDate(today.value).filter(r => r.pullNumber === currentPull.value && r.type !== 'pull_end')
+  endPullPhase.value = dayRecords.length > 0 ? (dayRecords.find(r => r.phase)?.phase || '') : ''
+  endPullVisible.value = true
+}
+
+function hasFatal(pull) {
+  return pull.records.some(r => r.type === 'mistake' && (r.level === 'wipe' || r.level === 'enrage' || r.level === 'unforgivable'))
+}
+
+const editPhaseVisible = ref(false)
+const editPhasePullNum = ref(0)
+const editPhaseVal = ref('')
+
+function editPullPhase(pull) {
+  editPhasePullNum.value = pull.pullNumber
+  editPhaseVal.value = pull.maxPhase || ''
+  editPhaseVisible.value = true
+}
+
+function confirmEditPhase() {
+  const num = editPhasePullNum.value
+  const pull = dailyPulls.value.find(p => p.pullNumber === num)
+  if (!pull) return
+  const newPhase = editPhaseVal.value
+  if (newPhase && newPhase !== pull.maxPhase) {
+    const existing = pull.records.find(r => r.type === 'progress')
+    if (existing) {
+      recordStore.updateRecord(existing.id, { phase: newPhase })
+    } else {
+      recordStore.addProgress({ phase: newPhase, notes: '手动修改', date: today.value, endPull: false })
     }
-    ElMessage.success(`第 ${pullNum} 把已结束，下一把为第 ${currentPull.value} 把`)
-  } catch {
-    // 用户取消
+    ElMessage.success(`第 ${num} 把进度已更新为 ${newPhase}`)
   }
+  editPhaseVisible.value = false
+}
+
+function confirmEndPull() {
+  const pullNum = currentPull.value
+  const phase = endPullPhase.value
+  const result = recordStore.endCurrentPull(today.value)
+  if (result && phase) {
+    recordStore.addProgress({ phase, notes: '手动结束', date: today.value, endPull: false })
+  }
+  ElMessage.success(phase ? `第 ${pullNum} 把已结束（到达 ${phase}），下一把为第 ${currentPull.value} 把` : `第 ${pullNum} 把已结束，下一把为第 ${currentPull.value} 把`)
+  endPullVisible.value = false
 }
 
 // --- 本把通关 ---
