@@ -118,6 +118,37 @@ D3  ──── [________]    D4  ──── [________]</pre>
       </section>
 
       <section class="help-section">
+        <h2 id="fflogs-query">🔍 FFLogs 查询</h2>
+        <p>无需导入，直接查询 FFLogs 上的开荒数据，支持两个工具：</p>
+
+        <h3>📊 进度统计</h3>
+        <p>查询某个玩家在指定 Boss 上的<strong>所有战斗记录</strong>，自动去重、绘制进度趋势图。</p>
+        <ul>
+          <li><strong>玩家名@服务器</strong>：如 <code>洛辰辰@海猫茶屋</code></li>
+          <li><strong>区域</strong>：国服填 <code>CN</code></li>
+          <li><strong>Boss ID</strong>：从下拉列表选择，也可手动输入 —— 当前支持绝境战 1073~1085</li>
+          <li><strong>起始时间</strong>：只统计此时间之后的战斗，默认昨天 0 点</li>
+          <li><strong>去重窗口</strong>：同一场战斗在不同报告里可能重复出现，默认 5 秒窗口去重</li>
+          <li><strong>血量查询</strong>：查询最远进度一场的 Boss 剩余血量（最终阶段窗口内）</li>
+        </ul>
+        <p>结果包含：战斗次数、通关次数、各 P 通过数、<strong>卡点分布柱状图</strong>、<strong>阶段通过次数图</strong>、<strong>进度趋势散点图</strong>，以及可搜索排序的详细表格。</p>
+
+        <h3>👥 初通队友对比</h3>
+        <p>查某个玩家的 <strong>首次通关记录</strong>，列出 7 个队友，统计每人<strong>此前/同场/此后</strong>的通关次数。</p>
+        <ul>
+          <li>先查目标玩家的全部通关记录，取 <strong>最早一次</strong> 作为「初通」</li>
+          <li>拉取初通那场的报告详情，提取 7 个队友名单</li>
+          <li>逐个队友查各自通关记录，按时间分成：<strong>此前</strong>（早于目标初通）、<strong>同场</strong>（同一窗口）、<strong>此后</strong>（晚于目标初通）</li>
+          <li>队友优先用 <code>encounterRankings</code> 一次拿全部记录；缺 ID 时自动解析</li>
+        </ul>
+        <p>结果包含：目标各职业过本次数 + 最高 rDPS/aDPS/cDPS，以及每个队友的此前/同场/此后/当前通关次数表格。</p>
+
+        <h3>⚙️ API 凭据</h3>
+        <p>FFLogs 查询和导入共用同一组 API 凭据（Client ID + Secret），在左侧边栏顶部配置。获取方式与「FFLogs 导入」相同。</p>
+        <div class="help-tip">💡 Boss ID 下拉框支持手动输入。如果输入了不在列表中的 ID（如 1050），系统会自动转为数字类型传给 API。</div>
+      </section>
+
+      <section class="help-section">
         <h2>🔄 队员上下场</h2>
         <p>有人请假？在 <strong>「成员管理」</strong> 中点「下场」，该队员将在犯错记录中隐藏，防止误选。归队后点「上场」恢复。</p>
       </section>

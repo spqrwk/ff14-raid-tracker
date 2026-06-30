@@ -113,8 +113,10 @@ ff14-raid-tracker/
 ### FFLogs 查询（`FflogsQuery.vue` + composables）
 
 - 凭证与「FFLogs 导入」共享（`ff14_fflogs_id/secret/token`）
-- 进度统计：`recentReports` 翻页 → 去重 → 血量查询 → ECharts
-- 队友对比：解析 ID → `encounterRankings` 一次拿全部过本 → 逐队友统计
+- 进度统计：`recentReports` 翻页 → 去重 → 血量查询 → ECharts 图表
+- 队友对比：解析目标 ID → `encounterRankings` 拿全部过本 → 初通场详情 → 队友 ID 预解析（无 ID 时用 `RESOLVE_ID_QUERY`）→ 逐队友 `encounterRankings` 统计
+- `el-select` 的 `allow-create` 模式下手动输入会返回字符串，所有 `encounterID` 传参处用 `Number()` 转换
+- 队友缺失数据时不留空白，显示 `-` 占位
 - API 额度自动刷新，429 不再重试
 
 ### 数据导出导入
