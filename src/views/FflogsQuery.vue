@@ -1239,9 +1239,23 @@ async function runTeammate() {
     const report = reportData.reportData.report
     if (!report) throw new Error(`没有找到报告 ${firstClear.reportCode}`)
     const { teammates } = extractPlayersFromFirstClear(report, firstClear.fightID, targetResult.character)
-    tm.progressPct = 30; tm.progressMsg = `初通队友 ${teammates.length} 人，统计各队友通关次数...`
+    tm.progressPct = 30; tm.progressMsg = `初通队友 ${teammates.length} 人，解析队友 ID...`
     tmLog(`初通队友数：${teammates.length}`)
+    // 对缺少 characterID 的队友，批量解析 ID，避免翻页路径
+    const missingId = teammates.filter(t => !t.characterID)
+    if (missingId.length) {
+      tmLog(`解析 ${missingId.length} 个队友的角色 ID...`)
+      for (const t of missingId) {
+        try {
+          const idData = await graphQL(RESOLVE_ID_QUERY, { characterName: t.name, serverSlug: t.serverSlug, serverRegion: tm.serverRegion })
+          const resolved = idData?.characterData?.character
+          if (resolved?.id) { t.characterID = resolved.id; tmLog(`  ${t.name}@${t.serverSlug} → id=${resolved.id}`) }
+          else { tmLog(`  ${t.name}@${t.serverSlug} 未解析到 ID，回退名字查询`) }
+        } catch (e) { tmLog(`  ${t.name}@${t.serverSlug} 解析 ID 失败：${e.message}`) }
+      }
+    }
     tmLog('统计队友通关次数')
+    tm.progressPct = 35; tm.progressMsg = `队友 ID 解析完成，统计各队友通关次数...`
     const results = []
     for (let i = 0; i < teammates.length; i++) {
       const tm8 = teammates[i]
