@@ -283,6 +283,7 @@ function handleImport() {
     // 覆盖队伍
   if (importData.value.teams) {
     teamStore.teams.splice(0, teamStore.teams.length, ...importData.value.teams)
+    teamStore.migrateTeamDuties()
     teamStore.persistTeams()
   }
   // 覆盖队员

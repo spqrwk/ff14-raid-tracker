@@ -184,6 +184,7 @@ export const useTeamStore = defineStore('teams', () => {
     setCurrentTeam,
     setCurrentDuty,
     getPhaseOrderForDuty,
+    migrateTeamDuties,
     ensureDefaultTeam,
     persistTeams
   }

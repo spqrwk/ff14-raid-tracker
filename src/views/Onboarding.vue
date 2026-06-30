@@ -427,6 +427,7 @@ async function confirmImport() {
     const recordStore = useRecordStore()
     if (data.teams?.length) {
       teamStore.teams.splice(0, teamStore.teams.length, ...data.teams)
+      teamStore.migrateTeamDuties()
       teamStore.persistTeams()
     }
     playerStore.players.splice(0, playerStore.players.length, ...data.players)
@@ -493,6 +494,7 @@ async function confirmPlayerImport() {
     // 如果文件里有队伍数据，也导入
     if (playerImportData.value.teams?.length) {
       teamStore.teams.splice(0, teamStore.teams.length, ...playerImportData.value.teams)
+      teamStore.migrateTeamDuties()
       teamStore.persistTeams()
     }
     ElMessage.success(`队员导入完成：新增 ${added} 人，更新 ${updated} 人`)
