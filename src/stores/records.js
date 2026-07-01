@@ -283,8 +283,8 @@ export const useRecordStore = defineStore('records', () => {
     const todayRecords = records.value.filter(
       r => r.date === recordDate && r.pullNumber === pullNumber && r.teamId === tid
     )
-    if (todayRecords.length === 0) return null
-    const duty = todayRecords.find(r => r.duty)?.duty || ''
+    // 即使当前把没有记录，也要创建 pull_end，否则结束无效
+    const duty = todayRecords.find(r => r.duty)?.duty || teamStore.currentDuty || ''
 
     const record = {
       id: generateId(),

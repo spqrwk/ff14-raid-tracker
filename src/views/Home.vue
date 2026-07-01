@@ -60,19 +60,16 @@
       </div>
     </el-card>
 
-    <!-- 两个操作 Tab -->
+    <!-- 记录犯错 -->
     <el-card class="action-card" shadow="never">
-      <el-tabs v-model="activeTab" class="action-tabs">
-        <!-- ========== 记录犯错 ========== -->
-        <el-tab-pane label="记录犯错" name="mistake">
-          <el-form
-            ref="mistakeFormRef"
-            :model="mistakeForm"
-            :rules="mistakeRules"
-            label-width="80px"
-            label-position="top"
-            class="record-form"
-          >
+      <el-form
+        ref="mistakeFormRef"
+        :model="mistakeForm"
+        :rules="mistakeRules"
+        label-width="80px"
+        label-position="top"
+        class="record-form"
+      >
             <!-- 多选队员（按角色分组） -->
             <el-form-item label="犯错队员" prop="playerIds">
               <div class="player-check-grid">
@@ -184,50 +181,6 @@
               </span>
             </el-form-item>
           </el-form>
-        </el-tab-pane>
-
-        <!-- ========== 记录进度 ========== -->
-        <el-tab-pane label="记录进度" name="progress">
-          <el-form ref="progressFormRef" :model="progressForm" :rules="progressRules" label-width="80px" label-position="top" class="record-form">
-            <el-row :gutter="16">
-              <el-col :span="12">
-                <el-form-item label="到达P几" prop="phase">
-                  <el-select
-                    v-model="progressForm.phase"
-                    placeholder="选择或输入阶段"
-                    filterable
-                    allow-create
-                    style="width: 100%"
-                  >
-                    <el-option
-                      v-for="p in selectablePhases"
-                      :key="p"
-                      :label="p"
-                      :value="p"
-                    />
-                  </el-select>
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item label="备注">
-                  <el-input
-                    v-model="progressForm.notes"
-                    placeholder="如：顺利处理了某某机制"
-                    maxlength="100"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
-
-            <el-form-item>
-              <el-button type="success" size="large" @click="submitProgress" :loading="submitting">
-                <el-icon><Check /></el-icon>
-                记录进度
-              </el-button>
-            </el-form-item>
-          </el-form>
-        </el-tab-pane>
-      </el-tabs>
     </el-card>
 
     <!-- 今日记录摘要 -->
@@ -462,9 +415,6 @@ const rolePlayerCount = computed(() => {
   return counts
 })
 
-// --- 表单 Tab ---
-const activeTab = ref('mistake')
-
 // --- 犯错表单 ---
 const mistakeFormRef = ref(null)
 const submitting = ref(false)
@@ -580,46 +530,6 @@ function submitMistake() {
   })
 }
 
-// --- 进度表单 ---
-const progressFormRef = ref(null)
-
-const progressForm = reactive({
-  phase: '',
-  notes: ''
-})
-
-const progressRules = {
-  phase: [{ required: true, message: '请选择或输入阶段', trigger: 'change' }]
-}
-
-function submitProgress() {
-  progressFormRef.value?.validate(async (valid) => {
-    if (!valid) return
-    submitting.value = true
-    try {
-      recordStore.addProgress({
-        duty: currentDuty.value,
-        phase: progressForm.phase,
-        notes: progressForm.notes,
-        endPull: true,
-        date: today.value
-      })
-
-      const endText = progressForm.endPull ? '，本把已结束' : ''
-      ElMessage.success(
-        `第 ${currentPull.value} 把 · 到达 ${progressForm.phase} 已记录${endText}`
-      )
-
-      progressForm.phase = ''
-      progressForm.notes = ''
-    } catch (e) {
-      ElMessage.error(e.message || '记录失败')
-    } finally {
-      submitting.value = false
-    }
-  })
-}
-
 // --- 手动结束本把 ---
 const endPullVisible = ref(false)
 const endPullPhase = ref('')
@@ -664,9 +574,11 @@ function confirmEditPhase() {
 function confirmEndPull() {
   const pullNum = currentPull.value
   const phase = endPullPhase.value
-  const result = recordStore.endCurrentPull(today.value)
-  if (result && phase) {
-    recordStore.addProgress({ phase, notes: '手动结束', date: today.value, endPull: false })
+  // 先记录进度（此时还是当前把次），再结束
+  if (phase) {
+    recordStore.addProgress({ phase, notes: '手动结束', date: today.value, endPull: true })
+  } else {
+    recordStore.endCurrentPull(today.value)
   }
   ElMessage.success(phase ? `第 ${pullNum} 把已结束（到达 ${phase}），下一把为第 ${currentPull.value} 把` : `第 ${pullNum} 把已结束，下一把为第 ${currentPull.value} 把`)
   endPullVisible.value = false
@@ -795,19 +707,6 @@ function levelTagType(level) {
 /* 操作卡片 */
 .action-card {
   margin-bottom: 16px;
-}
-
-.action-tabs :deep(.el-tabs__header) {
-  margin-bottom: 20px;
-}
-
-.action-tabs :deep(.el-tabs__item) {
-  font-size: 16px;
-  color: #a0a0b8;
-}
-
-.action-tabs :deep(.el-tabs__item.is-active) {
-  color: #ffd700;
 }
 
 .record-form {
