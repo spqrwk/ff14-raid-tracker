@@ -100,6 +100,11 @@
                   <span class="level-count unforgivable">{{ row.byLevel.unforgivable || 0 }}</span>
                 </template>
               </el-table-column>
+              <el-table-column label="设备故障" width="80" align="center">
+                <template #default="{ row }">
+                  <span class="level-count equipment">{{ row.byLevel.equipment || 0 }}</span>
+                </template>
+              </el-table-column>
             </el-table>
           </div>
         </el-card>
@@ -210,6 +215,8 @@
                     <span>狂暴 {{ group.enrage }}</span>
                     <span class="sep">|</span>
                     <span class="unforgivable-text">罪无可恕 {{ group.unforgivable || 0 }}</span>
+                    <span class="sep">|</span>
+                    <span class="equipment-text">设备 {{ group.equipment || 0 }}</span>
                   </div>
                   <div class="team-roles">
                     <span
@@ -356,6 +363,8 @@ function getSummaries({ columns, data }) {
       sums[index] = data.reduce((acc, row) => acc + row.byLevel.enrage, 0)
     } else if (label === '罪无可恕') {
       sums[index] = data.reduce((acc, row) => acc + (row.byLevel.unforgivable || 0), 0)
+    } else if (label === '设备故障') {
+      sums[index] = data.reduce((acc, row) => acc + (row.byLevel.equipment || 0), 0)
     } else {
       sums[index] = ''
     }
@@ -536,20 +545,23 @@ const allPlayerStats = computed(() => {
 
 const levelDistData = computed(() => {
   const stats = allPlayerStats.value
-  let death = 0, wipe = 0, enrage = 0, unforgivable = 0
+  let death = 0, wipe = 0, enrage = 0, unforgivable = 0, equipment = 0
   for (const s of stats) {
     death += s.byLevel.death
     wipe += s.byLevel.wipe
     enrage += s.byLevel.enrage
     unforgivable += (s.byLevel.unforgivable || 0)
+    equipment += (s.byLevel.equipment || 0)
   }
-  if (death + wipe + enrage + unforgivable === 0) return []
-  return [
+  if (death + wipe + enrage + unforgivable + equipment === 0) return []
+  const result = [
     { name: '减员', value: death, itemStyle: { color: '#e6a23c' } },
     { name: '团灭', value: wipe, itemStyle: { color: '#f56c6c' } },
     { name: '狂暴', value: enrage, itemStyle: { color: '#c4568b' } },
-    { name: '罪无可恕', value: (() => { let u = 0; for (const s of stats) u += (s.byLevel.unforgivable || 0); return u; })(), itemStyle: { color: '#9b0033' } }
+    { name: '罪无可恕', value: unforgivable, itemStyle: { color: '#9b0033' } }
   ]
+  if (equipment > 0) result.push({ name: '设备故障', value: equipment, itemStyle: { color: '#409eff' } })
+  return result
 })
 
 const levelPieOption = computed(() => {
@@ -674,10 +686,10 @@ const teamStatsData = computed(() => {
   }
 
   return ROLE_GROUPS.map(group => {
-    let total = 0, death = 0, wipe = 0, enrage = 0, unforgivable = 0
+    let total = 0, death = 0, wipe = 0, enrage = 0, unforgivable = 0, equipment = 0
     const roleCounts = {}
     for (const role of group.roles) {
-      roleCounts[role] = { role, count: 0, death: 0, wipe: 0, enrage: 0, unforgivable: 0 }
+      roleCounts[role] = { role, count: 0, death: 0, wipe: 0, enrage: 0, unforgivable: 0, equipment: 0 }
     }
 
     for (const r of mistakeRecords) {
@@ -689,6 +701,7 @@ const teamStatsData = computed(() => {
       else if (r.level === 'wipe') wipe++
       else if (r.level === 'enrage') enrage++
       else if (r.level === 'unforgivable') unforgivable++
+      else if (r.level === 'equipment') equipment++
 
       if (roleCounts[role]) {
         roleCounts[role].count++
@@ -696,12 +709,13 @@ const teamStatsData = computed(() => {
         else if (r.level === 'wipe') roleCounts[role].wipe++
         else if (r.level === 'enrage') roleCounts[role].enrage++
         else if (r.level === 'unforgivable') roleCounts[role].unforgivable++
+        else if (r.level === 'equipment') roleCounts[role].equipment++
       }
     }
 
     return {
       ...group,
-      total, death, wipe, enrage, unforgivable,
+      total, death, wipe, enrage, unforgivable, equipment,
       roles: Object.values(roleCounts).filter(r => r.count > 0 || group.roles.includes(r.role))
     }
   }).filter(g => g.total > 0)
@@ -723,7 +737,7 @@ const teamBarOption = computed(() => {
   // 按角色位聚合
   const roleStats = {}
   for (const rl of ['MT', 'ST', 'H1', 'H2', 'D1', 'D2', 'D3', 'D4']) {
-    roleStats[rl] = { death: 0, wipe: 0, enrage: 0, unforgivable: 0 }
+    roleStats[rl] = { death: 0, wipe: 0, enrage: 0, unforgivable: 0, equipment: 0 }
   }
   for (const r of mistakeRecords) {
     const role = playerRoleMap[r.playerId]
@@ -736,10 +750,11 @@ const teamBarOption = computed(() => {
   const wipeData = roles.map(r => roleStats[r].wipe)
   const enrageData = roles.map(r => roleStats[r].enrage)
   const unforgivableData = roles.map(r => roleStats[r].unforgivable || 0)
+  const equipmentData = roles.map(r => roleStats[r].equipment || 0)
 
   // 找出最大值的角色位，高亮颜色
   const maxVal = Math.max(
-    ...deathData, ...wipeData, ...enrageData, ...unforgivableData, 1
+    ...deathData, ...wipeData, ...enrageData, ...unforgivableData, ...equipmentData, 1
   )
 
   return {
@@ -751,7 +766,7 @@ const teamBarOption = computed(() => {
       textStyle: { color: '#e0e0e0', fontSize: 13 }
     },
     legend: {
-      data: ['减员', '团灭', '狂暴', '罪无可恕'],
+      data: ['减员', '团灭', '狂暴', '罪无可恕', '设备故障'],
       textStyle: { color: '#a0a0b8' },
       top: 0
     },
@@ -811,6 +826,16 @@ const teamBarOption = computed(() => {
           borderRadius: [4, 4, 0, 0]
         },
         emphasis: { itemStyle: { color: '#d42050' } }
+      },
+      {
+        name: '设备故障',
+        type: 'bar',
+        data: equipmentData,
+        itemStyle: {
+          color: '#409eff',
+          borderRadius: [4, 4, 0, 0]
+        },
+        emphasis: { itemStyle: { color: '#6ab0ff' } }
       }
     ]
   }
@@ -935,6 +960,10 @@ const teamBarOption = computed(() => {
   color: #c4568b;
 }
 
+.level-count.equipment {
+  color: #409eff;
+}
+
 .level-count.unforgivable {
   color: #ff3366;
   font-weight: 800;
@@ -1055,6 +1084,11 @@ const teamBarOption = computed(() => {
 
 .unforgivable-text {
   color: #ff3366;
+  font-weight: 700;
+}
+
+.equipment-text {
+  color: #409eff;
   font-weight: 700;
 }
 

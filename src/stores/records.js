@@ -396,7 +396,7 @@ export const useRecordStore = defineStore('records', () => {
       if (!statsMap[r.playerId]) {
         statsMap[r.playerId] = {
           playerId: r.playerId, playerName: r.playerName,
-          total: 0, byDate: {}, byLevel: { death: 0, wipe: 0, enrage: 0, unforgivable: 0 }
+          total: 0, byDate: {}, byLevel: { death: 0, wipe: 0, enrage: 0, unforgivable: 0, equipment: 0 }
         }
       }
       const stat = statsMap[r.playerId]
