@@ -117,24 +117,29 @@ export const useTeamStore = defineStore('teams', () => {
     return [...DEFAULT_PHASE_ORDER]
   }
 
+  function ensureCompleted(order) {
+    if (!order.includes('已完成')) order.push('已完成')
+    return order
+  }
+
   const currentPhaseOrder = computed({
     get() {
       const t = currentTeam.value
-      if (!t) return [...DEFAULT_PHASE_ORDER]
+      if (!t) return ensureCompleted([...DEFAULT_PHASE_ORDER])
       const duty = currentDuty.value
       // 1. 当前副本已有自定义阶段
       if (duty && t.phaseOrders?.[duty]) {
-        return [...t.phaseOrders[duty]]
+        return ensureCompleted([...t.phaseOrders[duty]])
       }
       // 2. 当前副本有预定义阶段（尚未自定义）
       if (duty && DUTY_PHASES[duty]) {
-        return [...DUTY_PHASES[duty]]
+        return ensureCompleted([...DUTY_PHASES[duty]])
       }
       // 3. 旧版 phaseOrder 兜底
       if (t.phaseOrder) {
-        return [...t.phaseOrder]
+        return ensureCompleted([...t.phaseOrder])
       }
-      return [...DEFAULT_PHASE_ORDER]
+      return ensureCompleted([...DEFAULT_PHASE_ORDER])
     },
     set(val) {
       const t = teams.value.find(t => t.id === currentTeamId.value)

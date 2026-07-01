@@ -400,26 +400,22 @@ const progressionData = computed(() => {
 const progressionChartOption = computed(() => {
   const data = progressionData.value
   if (data.length === 0) return {}
+  const phaseOrder = recordStore.phaseOrder
+  console.log('[progressionChart] phaseOrder:', phaseOrder, 'dataPoints:', data.length, 'values:', data.map(d => d.maxPhase))
 
   const labels = data.map((d, i) => {
     const shortDate = d.date.slice(5) // MM-DD
     return `${shortDate}\n第${d.pullNumber}把`
   })
 
-  const values = data.map(d => d.maxPhaseValue)
-  const phaseMax = recordStore.phaseOrder.length
-  const yMax = Math.max(phaseMax, Math.max(...values) + 1)
-
-  // 生成 Y 轴标签
-  const yLabels = []
-  const yMarks = []
-  for (let i = 1; i <= yMax; i++) {
-    const name = recordStore.getPhaseNameByValue(i)
-    yLabels.push(name)
-    if (i <= phaseMax) {
-      yMarks.push({ yAxis: i, label: { formatter: name, fontSize: 11 } })
+  // 将数值转为 phaseOrder 中的阶段名，落在刻度上
+  const values = data.map(d => {
+    if (d.maxPhaseValue >= 1 && d.maxPhaseValue <= phaseOrder.length) {
+      return phaseOrder[d.maxPhaseValue - 1]
     }
-  }
+    // 兜底：取第一个或最后一个阶段
+    return phaseOrder[0] || d.maxPhase || '?'
+  })
 
   // 标记灭团/狂暴的点
   const markPoints = []
@@ -432,7 +428,7 @@ const progressionChartOption = computed(() => {
     const hasFatal = pullRecords.some(r => r.level === 'wipe' || r.level === 'enrage' || r.level === 'unforgivable')
     if (hasFatal) {
       markPoints.push({
-        coord: [i, d.maxPhaseValue],
+        coord: [i, values[i]],
         symbol: 'pin',
         symbolSize: 36,
         itemStyle: { color: '#f56c6c' }
@@ -477,18 +473,15 @@ const progressionChartOption = computed(() => {
       nameTextStyle: { color: '#a0a0b8' }
     },
     yAxis: {
-      type: 'value',
+      type: 'category',
+      data: phaseOrder,
       name: '阶段',
       nameTextStyle: { color: '#808090', fontSize: 12 },
-      min: 0,
-      max: yMax + 1,
-      interval: 1,
       axisLine: { show: false },
       axisTick: { show: false },
       splitLine: { lineStyle: { color: '#1a1a3a' } },
       axisLabel: {
-        color: '#808090',
-        formatter: (v) => recordStore.getPhaseNameByValue(v) || ''
+        color: '#808090'
       }
     },
     series: [

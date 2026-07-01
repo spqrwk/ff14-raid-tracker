@@ -85,6 +85,8 @@ export const useRecordStore = defineStore('records', () => {
     if (!phase) return 0
     const idx = phaseOrder.value.indexOf(phase)
     if (idx !== -1) return idx + 1
+    // 通关/已完成 始终排在最高位
+    if (phase === '已完成') return phaseOrder.value.length + 1
     // 宽松匹配：提取阶段中的 P 编号，如 "P1风圈前" → 1, "P2火神柱" → 2
     const match = String(phase).match(/^P(\d+(?:\.\d+)?)/i)
     if (match) return parseFloat(match[1])
