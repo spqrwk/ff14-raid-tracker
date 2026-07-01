@@ -130,7 +130,7 @@
             <v-chart
               :option="progressionChartOption"
               autoresize
-              style="height: 420px"
+              style="height: 420px; width: 100%"
             />
           </div>
         </el-card>
@@ -150,25 +150,25 @@
             <el-empty description="暂无犯错记录" :image-size="100" />
           </div>
 
-          <div v-else class="charts-row">
-            <div class="chart-half">
+          <div v-else class="charts-stack">
+            <div class="chart-full">
               <h4 class="chart-subtitle">犯错等级分布</h4>
               <v-chart
                 v-if="levelDistData.length > 0"
                 :option="levelPieOption"
                 autoresize
-                style="height: 320px"
+                style="height: 300px; width: 100%"
                 @click="onLevelPieClick"
               />
               <el-empty v-else description="暂无数据" :image-size="60" />
             </div>
-            <div class="chart-half">
+            <div class="chart-full">
               <h4 class="chart-subtitle">队员犯错分布</h4>
               <v-chart
                 v-if="playerDistData.length > 0"
                 :option="playerPieOption"
                 autoresize
-                style="height: 320px"
+                style="height: 300px; width: 100%"
                 @click="onPlayerPieClick"
               />
               <el-empty v-else description="暂无数据" :image-size="60" />
@@ -577,7 +577,7 @@ const levelPieOption = computed(() => {
     },
     series: [{
       type: 'pie',
-      radius: ['45%', '75%'],
+      radius: ['40%', '65%'],
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
       itemStyle: {
@@ -589,6 +589,7 @@ const levelPieOption = computed(() => {
         show: true,
         position: 'outside',
         color: '#c0c0d0',
+        fontSize: 12,
         formatter: '{b}\n{c} 次'
       },
       emphasis: {
@@ -628,7 +629,7 @@ const playerPieOption = computed(() => {
     },
     series: [{
       type: 'pie',
-      radius: ['45%', '75%'],
+      radius: ['40%', '65%'],
       center: ['50%', '50%'],
       avoidLabelOverlap: false,
       itemStyle: {
@@ -640,6 +641,7 @@ const playerPieOption = computed(() => {
         show: true,
         position: 'outside',
         color: '#c0c0d0',
+        fontSize: 12,
         formatter: '{b}\n{c} 次'
       },
       emphasis: {
@@ -844,7 +846,6 @@ const teamBarOption = computed(() => {
 
 <style scoped>
 .stats-page {
-  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -971,12 +972,13 @@ const teamBarOption = computed(() => {
 }
 
 /* 图表行 */
-.charts-row {
+.charts-stack {
   display: flex;
+  flex-direction: column;
   gap: 20px;
 }
 
-.chart-half {
+.chart-full {
   flex: 1;
   min-width: 0;
 }
@@ -990,8 +992,8 @@ const teamBarOption = computed(() => {
 }
 
 @media (max-width: 768px) {
-  .charts-row {
-    flex-direction: column;
+  .charts-stack {
+    gap: 12px;
   }
   .team-cards-row .el-col {
     flex: 0 0 100%;

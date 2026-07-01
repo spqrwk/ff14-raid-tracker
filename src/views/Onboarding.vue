@@ -1,8 +1,14 @@
 <template>
   <div class="onboarding-page">
     <el-container>
+      <!-- 移动端汉堡按钮 -->
+      <div class="mobile-toggle" @click="sidebarOpen = !sidebarOpen">
+        <el-icon :size="24"><component :is="sidebarOpen ? 'Close' : 'Menu'" /></el-icon>
+      </div>
+      <div v-if="sidebarOpen" class="mobile-overlay" @click="sidebarOpen = false" />
+
       <!-- 左侧导航栏 -->
-      <el-aside width="220px" class="onboarding-aside">
+      <el-aside width="220px" class="onboarding-aside" :class="{ 'sidebar-open': sidebarOpen }">
         <div class="onboarding-logo-area">
           <el-icon :size="28"><Aim /></el-icon>
           <span>FF14 高难工具箱</span>
@@ -301,6 +307,7 @@ const teamStore = useTeamStore()
 const playerStore = usePlayerStore()
 const checkChangelog = inject('checkChangelog', () => {})
 const updateLastVersion = inject('updateLastVersion', () => {})
+const sidebarOpen = ref(false)
 const importFileRef = ref(null)
 const playerFileRef = ref(null)
 const importData = ref(null)
@@ -314,6 +321,7 @@ const activeNav = ref('raid')
 
 function onNavSelect(index) {
   activeNav.value = index
+  sidebarOpen.value = false
 }
 
 // 角色颜色
@@ -545,6 +553,9 @@ async function confirmPlayerImport() {
   min-height: 100vh;
   background: #0f0f1a;
 }
+
+.mobile-toggle { display: none; }
+.mobile-overlay { display: none; }
 
 /* ====== 左侧导航栏 ====== */
 .onboarding-aside {
@@ -833,6 +844,20 @@ async function confirmPlayerImport() {
 
 /* ====== 移动端适配 ====== */
 @media (max-width: 768px) {
+  .mobile-toggle {
+    display: flex;
+    position: fixed; top: 10px; left: 10px; z-index: 101;
+    width: 40px; height: 40px;
+    background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 8px;
+    align-items: center; justify-content: center;
+    color: #ffd700; cursor: pointer;
+  }
+  .mobile-overlay {
+    display: block;
+    position: fixed; inset: 0; z-index: 99;
+    background: rgba(0,0,0,.5);
+  }
+
   .onboarding-aside {
     position: fixed;
     left: 0;
@@ -842,10 +867,10 @@ async function confirmPlayerImport() {
     transform: translateX(-100%);
     transition: transform 0.25s;
   }
+  .onboarding-aside.sidebar-open { transform: translateX(0); }
 
-  /* 移动端通过汉堡按钮展开（暂时简化：始终隐藏侧边栏，靠内容区分） */
   .onboarding-main {
-    padding: 24px 12px;
+    padding: 56px 12px 12px 12px;
   }
 
   .nav-content {
