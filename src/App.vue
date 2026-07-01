@@ -89,7 +89,7 @@
                 <template v-else>未配置</template>
               </span>
             </div>
-            <div class="version-text">v1.2.1</div>
+            <div class="version-text">v1.3.0</div>
           </div>
         </el-aside>
 
@@ -214,8 +214,18 @@ function dismissWelcome() {
 }
 
 // 更新日志
-const CURRENT_VERSION = '1.2.1'
+const CURRENT_VERSION = '1.3.0'
 const CHANGELOG = {
+  '1.3.0': [
+    '阶段顺序改为 per-duty 独立存储，数据管理改为 Tab 切换编辑',
+    '开荒进度 Y 轴改为直接显示阶段名，已完成始终排最高位',
+    '数据统计三个维度新增设备故障统计',
+    '记录进度与手动结束合并，空把次也能正常结束',
+    'FFLogs 查询修复 encounterID 类型错误，队友 ID 预解析减少请求',
+    '所有时间格式化显式指定 Asia/Shanghai 时区',
+    'Stats 页满宽布局，饼图垂直堆叠，移动端 Onboarding 汉堡菜单',
+    '帮助文档新增 FFLogs 查询使用说明'
+  ],
   '1.2.1': [
     '数据统计 - 队员统计移除按日期划分的列'
   ],
